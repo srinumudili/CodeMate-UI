@@ -7,6 +7,8 @@ import ErrorPage from "./components/ErrorPage.jsx";
 import MainContainer from "./components/MainContainer.jsx";
 import Login from "./components/Login.jsx";
 import Profile from "./components/Profile.jsx";
+import { Provider } from "react-redux";
+import appStore from "./utils/appStore.js";
 
 const router = createBrowserRouter([
   {
@@ -32,6 +34,8 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <Provider store={appStore}>
+      <RouterProvider router={router} />
+    </Provider>
   </StrictMode>
 );

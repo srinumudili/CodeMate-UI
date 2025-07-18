@@ -1,25 +1,34 @@
 import React from "react";
 
 const UserCard = ({ user }) => {
-  const { firstName, lastName, profileUrl, age, gender, about } = user;
-  return (
-    <div className="flex justify-center my-10">
-      <div className="card bg-base-300 w-96 shadow-sm">
-        <figure>
-          <img src={profileUrl} alt="Profile Photo" />
-        </figure>
-        <div className="card-body">
-          <h2 className="card-title">
-            {firstName.toUpperCase()} {lastName}
-          </h2>
+  if (!user) return null;
 
-          <p>{age && gender && `${age} , ${gender}`}</p>
-          <p>{about}</p>
-          <div className="card-actions justify-center">
-            <button className="btn btn-primary">Ignore</button>
-            <button className="btn btn-accent">Interest</button>
+  const { firstName, lastName, profileUrl, age, gender, about } = user;
+
+  return (
+    <div className="relative w-full max-w-sm mx-auto my-10">
+      <div className="card shadow-2xl bg-base-100 rounded-3xl overflow-hidden">
+        <figure className="relative">
+          <img
+            src={profileUrl}
+            alt="profile"
+            className="w-full h-80 object-cover"
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 text-white">
+            <h2 className="text-2xl font-bold capitalize">
+              {firstName} {lastName}, {age}
+            </h2>
+            <p className="text-sm capitalize">{gender}</p>
+            {about && <p className="text-xs mt-1">{about}</p>}
           </div>
-        </div>
+        </figure>
+      </div>
+
+      <div className="flex justify-center gap-6 mt-4">
+        <button className="btn btn-circle btn-outline btn-error text-xl">
+          ❌
+        </button>
+        <button className="btn btn-circle btn-primary text-xl">❤️</button>
       </div>
     </div>
   );

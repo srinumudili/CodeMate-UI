@@ -30,7 +30,7 @@ const Feed = () => {
     getFeed();
   }, []);
 
-  return <>{feed && <UserCard user={feed[6]} />}</>;
+  return <>{feed && <UserCard user={feed[0]} />}</>;
 };
 
 export default Feed;

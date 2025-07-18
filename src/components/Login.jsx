@@ -41,6 +41,7 @@ const Login = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+          <p className="text-red-600">{err}</p>
         </fieldset>
         <fieldset className="fieldset">
           <legend className="fieldset-legend">Password</legend>
@@ -51,9 +52,9 @@ const Login = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+          <p className="text-red-600">{err}</p>
         </fieldset>
         <div className="card-actions justify-end">
-          <p className="text-red-600">{err}</p>
           <button className="btn btn-primary" onClick={() => handleLogin()}>
             Login
           </button>

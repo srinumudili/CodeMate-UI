@@ -1,5 +1,11 @@
+import Feed from "./Feed";
+
 const MainContainer = () => {
-  return <div>MainContainer</div>;
+  return (
+    <main className="flex-grow">
+      <Feed />
+    </main>
+  );
 };
 
 export default MainContainer;

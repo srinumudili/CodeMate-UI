@@ -30,6 +30,15 @@ const Feed = () => {
     getFeed();
   }, []);
 
+  if (!feed) return null;
+
+  if (feed.length === 0) {
+    return (
+      <h1 className="text-center text-xl font-semibold text-gray-300 mt-10">
+        Your Feed is Empty.
+      </h1>
+    );
+  }
   return <>{feed && <UserCard user={feed[0]} />}</>;
 };
 

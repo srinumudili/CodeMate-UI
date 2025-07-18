@@ -10,10 +10,11 @@ const UserCard = ({ user }) => {
         </figure>
         <div className="card-body">
           <h2 className="card-title">
-            {firstName} {lastName}
+            {firstName.toUpperCase()} {lastName}
           </h2>
+
+          <p>{age && gender && `${age} , ${gender}`}</p>
           <p>{about}</p>
-          <p>{age && gender && `${age} ${gender}`}</p>
           <div className="card-actions justify-center">
             <button className="btn btn-primary">Ignore</button>
             <button className="btn btn-accent">Interest</button>

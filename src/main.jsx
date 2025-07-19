@@ -11,6 +11,8 @@ import { Provider } from "react-redux";
 import appStore from "./utils/appStore.js";
 import Connections from "./components/Connections.jsx";
 import Requests from "./components/Requests.jsx";
+import SignUp from "./components/SignUp.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 const router = createBrowserRouter([
   {
@@ -19,7 +21,11 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <MainContainer />,
+        element: (
+          <ProtectedRoute>
+            <MainContainer />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/login",
@@ -36,6 +42,10 @@ const router = createBrowserRouter([
       {
         path: "/requests",
         element: <Requests />,
+      },
+      {
+        path: "/signup",
+        element: <SignUp />,
       },
     ],
     errorElement: <ErrorPage />,

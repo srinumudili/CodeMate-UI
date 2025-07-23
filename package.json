@@ -1,5 +1,5 @@
 {
-  "name": "devtinder-ui",
+  "name": "codemate-ui",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -17,6 +17,7 @@
     "react-dom": "^19.1.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.6.3",
+    "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.1.11"
   },
   "devDependencies": {

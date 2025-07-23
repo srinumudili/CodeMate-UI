@@ -13,6 +13,7 @@ import Connections from "./components/Connections.jsx";
 import Requests from "./components/Requests.jsx";
 import SignUp from "./components/SignUp.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import Chat from "./components/Chat.jsx";
 
 const router = createBrowserRouter([
   {
@@ -46,6 +47,10 @@ const router = createBrowserRouter([
       {
         path: "/signup",
         element: <SignUp />,
+      },
+      {
+        path: "/chat/:targetId",
+        element: <Chat />,
       },
     ],
     errorElement: <ErrorPage />,

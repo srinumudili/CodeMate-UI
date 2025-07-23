@@ -30,7 +30,7 @@ const Navbar = () => {
           to="/"
           className="btn btn-ghost normal-case text-2xl font-bold text-primary"
         >
-          DevTinder
+          CodeMate
         </Link>
       </div>
 

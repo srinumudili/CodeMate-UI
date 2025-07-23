@@ -1,48 +1,67 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { createSocketConnection } from "../utils/socket";
 import axios from "axios";
 import { BASE_URL } from "../utils/constants";
 
 const Chat = () => {
   const { targetId } = useParams();
+  const navigate = useNavigate();
   const user = useSelector((store) => store.user);
   const userId = user?._id;
-  const { firstName, lastName } = user;
+  const { firstName, lastName } = user || {};
 
+  const [targetUser, setTargetUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
+  const [unauthorized, setUnauthorized] = useState(false);
+
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   const fetchChatMessages = async () => {
-    const chat = await axios.get(`${BASE_URL}/chat/${targetId}`, {
-      withCredentials: true,
-    });
+    try {
+      const chat = await axios.get(`${BASE_URL}/chat/${targetId}`, {
+        withCredentials: true,
+      });
 
-    const chatMessages = chat?.data?.messages.map((msg) => {
-      const { senderId, text } = msg;
-      return {
-        firstName: senderId?.firstName,
-        lastName: senderId?.lastName,
-        text,
-      };
-    });
+      // Validate access
+      if (!chat?.data?.authorized) {
+        setUnauthorized(true);
+        return;
+      }
 
-    setMessages(chatMessages);
+      const chatMessages = chat?.data?.messages.map((msg) => {
+        const { senderId, text } = msg;
+        return {
+          firstName: senderId?.firstName,
+          lastName: senderId?.lastName,
+          text,
+        };
+      });
+
+      setMessages(chatMessages);
+
+      const receiver = chat?.data?.participants?.find((p) => p._id !== userId);
+      setTargetUser(receiver);
+    } catch (error) {
+      console.error("Error fetching chat:", error);
+      setUnauthorized(true);
+    }
   };
 
   useEffect(() => {
+    if (!userId) return;
     fetchChatMessages();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || unauthorized) return;
 
     const socket = createSocketConnection();
     socketRef.current = socket;
@@ -56,7 +75,7 @@ const Chat = () => {
     return () => {
       socket.disconnect();
     };
-  }, [userId, targetId, firstName, lastName]);
+  }, [userId, targetId, firstName, lastName, unauthorized]);
 
   const handleSendMessage = () => {
     if (messageText.trim() === "") return;
@@ -73,17 +92,45 @@ const Chat = () => {
     setMessageText("");
   };
 
+  if (unauthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-base-200 px-4">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-bold text-error">Unauthorized Access</h1>
+          <p className="text-base">
+            You are not connected with this user or the chat does not exist.
+          </p>
+          <button onClick={() => navigate("/")} className="btn btn-accent mt-4">
+            Go Back Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center px-2 sm:px-6 py-6">
       <div className="w-full max-w-2xl h-[85vh] flex flex-col bg-base-100 shadow-xl rounded-2xl border border-base-300 overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-base-300 bg-primary text-primary-content sticky top-0 z-10 flex justify-between items-center">
-          <h2 className="text-lg font-bold tracking-wide">
-            Chat with{" "}
-            <span className="ml-1">
-              {targetId.slice(0, 6)}...{targetId.slice(-4)}
-            </span>
-          </h2>
+        <div className="px-6 py-4 border-b border-base-300 bg-base-300 text-primary-content sticky top-0 z-10 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="avatar">
+              <div className="w-10 rounded-full ring ring-offset-2 ring-base-100 ring-offset-base-300">
+                <img
+                  src={targetUser ? `${targetUser?.profileUrl}` : ""}
+                  alt="avatar"
+                />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-md font-bold capitalize leading-tight">
+                {targetUser
+                  ? `${targetUser.firstName} ${targetUser.lastName}`
+                  : "Loading..."}
+              </h2>
+              <p className="text-xs opacity-80">Online</p>
+            </div>
+          </div>
         </div>
 
         {/* Messages */}
@@ -99,7 +146,7 @@ const Chat = () => {
                   <div className="w-10 rounded-full ring ring-offset-2 ring-primary ring-offset-base-100">
                     <img
                       alt={`${msg.firstName}`}
-                      src={`https://ui-avatars.com/api/?name=${msg.firstName}+${msg.lastName}`}
+                      src={isSender ? user?.profileUrl : targetUser?.profileUrl}
                     />
                   </div>
                 </div>
@@ -109,9 +156,9 @@ const Chat = () => {
                 <div
                   className={`chat-bubble text-sm ${
                     isSender
-                      ? "bg-primary text-primary-content"
-                      : "bg-accent text-accent-content"
-                  }`}
+                      ? "bg-green-900 text-white"
+                      : "bg-gray-800 text-white"
+                  } rounded-xl shadow-md`}
                 >
                   {msg.text}
                 </div>

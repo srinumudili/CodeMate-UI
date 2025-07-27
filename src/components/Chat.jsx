@@ -17,14 +17,26 @@ const Chat = () => {
   const [messageText, setMessageText] = useState("");
   const [unauthorized, setUnauthorized] = useState(false);
 
+  //Tracking paginated state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
-  const fetchChatMessages = async () => {
+  const fetchChatMessages = async (requestedPage = 1) => {
     try {
-      const chat = await axios.get(`${BASE_URL}/chat/${targetId}`, {
-        withCredentials: true,
-      });
+      if (loadingMessages || !hasMore) return;
+
+      setLoadingMessages(true);
+      const chat = await axios.get(
+        `${BASE_URL}/api/chat/${targetId}?page=${requestedPage}&limit=20`,
+        {
+          withCredentials: true,
+        }
+      );
 
       // Validate access
       if (!chat?.data?.authorized) {
@@ -41,19 +53,44 @@ const Chat = () => {
         };
       });
 
-      setMessages(chatMessages);
+      setMessages((prev) => [...chatMessages, ...prev]);
 
-      const receiver = chat?.data?.participants?.find((p) => p._id !== userId);
-      setTargetUser(receiver);
+      // First fetch: set targetUser
+      if (!targetUser) {
+        const receiver = chat.data?.participants?.find((p) => p._id !== userId);
+        setTargetUser(receiver);
+      }
+
+      setHasMore(requestedPage * 20 < chat.data?.totalMessages);
+      setPage((prev) => prev + 1);
     } catch (error) {
       console.error("Error fetching chat:", error);
       setUnauthorized(true);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  const handleScroll = () => {
+    const container = chatContainerRef.current;
+    if (!container || loadingMessages || !hasMore) return;
+
+    if (container.scrollTop < 50) {
+      fetchChatMessages(page);
     }
   };
 
   useEffect(() => {
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  });
+
+  useEffect(() => {
     if (!userId) return;
-    fetchChatMessages();
+    fetchChatMessages(1);
   }, [userId]);
 
   useEffect(() => {
@@ -117,7 +154,7 @@ const Chat = () => {
             <div className="avatar">
               <div className="w-10 rounded-full ring ring-offset-2 ring-base-100 ring-offset-base-300">
                 <img
-                  src={targetUser ? `${targetUser?.profileUrl}` : ""}
+                  src={targetUser && `${targetUser?.profileUrl}`}
                   alt="avatar"
                 />
               </div>
@@ -134,7 +171,15 @@ const Chat = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-5">
+        <div
+          ref={chatContainerRef}
+          className="flex-1 overflow-y-auto px-4 py-6 space-y-5"
+        >
+          {loadingMessages && (
+            <div className="flex justify-center items-center">
+              <span className="loading loading-spinner loading-sm text-primary"></span>
+            </div>
+          )}
           {messages.map((msg, index) => {
             const isSender = msg.firstName === firstName;
             return (

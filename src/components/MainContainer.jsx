@@ -1,3 +1,4 @@
+import React, { memo } from "react";
 import Feed from "./Feed";
 
 const MainContainer = () => {
@@ -8,4 +9,4 @@ const MainContainer = () => {
   );
 };
 
-export default MainContainer;
+export default memo(MainContainer);

@@ -8,22 +8,39 @@ const ErrorPage = () => {
   const data = error?.data || "Something went wrong.";
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gray-100">
-      <div className="bg-white shadow-lg rounded-xl p-8 max-w-lg text-center">
-        <h1 className="text-6xl font-bold text-red-600 mb-4">{status}</h1>
-        <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-          {statusText}
-        </h2>
-        <p className="text-gray-600 mb-6">{data}</p>
-        <Link
-          to="/"
-          className="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-        >
-          Go Home
-        </Link>
+    <div className="hero min-h-screen bg-base-200 px-4">
+      <div className="hero-content text-center">
+        <div className="card shadow-2xl bg-base-100 p-8 max-w-md w-full">
+          <div className="text-red-500 text-7xl font-bold mb-4">{status}</div>
+          <h2 className="text-2xl font-semibold mb-2 text-base-content">
+            {statusText}
+          </h2>
+          <p className="text-base-content/70 mb-4">{data}</p>
+
+          <div className="mt-6">
+            <Link to="/" className="btn btn-primary">
+              ⬅️ Go to Home
+            </Link>
+          </div>
+
+          {/* Optional: Show detailed error in collapsible panel */}
+          <div className="mt-6">
+            <div className="collapse collapse-arrow bg-base-200">
+              <input type="checkbox" />
+              <div className="collapse-title font-medium">
+                Error Details (for devs)
+              </div>
+              <div className="collapse-content">
+                <pre className="text-sm text-red-400 whitespace-pre-wrap break-words">
+                  {JSON.stringify(error, null, 2)}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
-export default ErrorPage;
+export default React.memo(ErrorPage);

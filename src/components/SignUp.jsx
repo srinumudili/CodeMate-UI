@@ -1,16 +1,20 @@
 import axios from "axios";
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { addUser } from "../utils/userSlice";
 import { Link, useNavigate } from "react-router-dom";
 import { BASE_URL } from "../utils/constants";
 
 const SignUp = () => {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,15 +22,18 @@ const SignUp = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const validate = () => {
+  const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
+
+  const validate = useCallback(() => {
     const newErrors = {};
+    const { firstName, lastName, email, password, confirmPassword } = form;
 
     if (!firstName.trim()) newErrors.firstName = "First name is required";
     if (!lastName.trim()) newErrors.lastName = "Last name is required";
 
     if (!email.trim()) {
       newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    } else if (!emailRegex.test(email)) {
       newErrors.email = "Invalid email format";
     }
 
@@ -36,9 +43,22 @@ const SignUp = () => {
       newErrors.password = "Password must be at least 6 characters";
     }
 
+    if (confirmPassword !== password) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [form, emailRegex]);
+
+  const handleChange = useCallback((e) => {
+    setForm((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+    setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
+    setServerError("");
+  }, []);
 
   const handleSignUp = async () => {
     if (!validate()) return;
@@ -48,10 +68,16 @@ const SignUp = () => {
 
     try {
       const res = await axios.post(
-        `${BASE_URL}/signup`,
-        { firstName, lastName, email, password },
+        `${BASE_URL}/api/auth/signup`,
+        {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          password: form.password,
+        },
         { withCredentials: true }
       );
+
       dispatch(addUser(res.data?.data));
       navigate("/profile");
     } catch (error) {
@@ -74,6 +100,7 @@ const SignUp = () => {
             e.preventDefault();
             handleSignUp();
           }}
+          noValidate
         >
           {/* First Name */}
           <div className="form-control mb-3">
@@ -82,12 +109,13 @@ const SignUp = () => {
             </label>
             <input
               type="text"
+              name="firstName"
               className={`input input-bordered w-full ${
                 errors.firstName ? "input-error" : ""
               }`}
               placeholder="Enter your first name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              value={form.firstName}
+              onChange={handleChange}
             />
             {errors.firstName && (
               <span className="text-error text-sm mt-1">
@@ -103,12 +131,13 @@ const SignUp = () => {
             </label>
             <input
               type="text"
+              name="lastName"
               className={`input input-bordered w-full ${
                 errors.lastName ? "input-error" : ""
               }`}
               placeholder="Enter your last name"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              value={form.lastName}
+              onChange={handleChange}
             />
             {errors.lastName && (
               <span className="text-error text-sm mt-1">{errors.lastName}</span>
@@ -122,12 +151,13 @@ const SignUp = () => {
             </label>
             <input
               type="email"
+              name="email"
               className={`input input-bordered w-full ${
                 errors.email ? "input-error" : ""
               }`}
               placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={form.email}
+              onChange={handleChange}
             />
             {errors.email && (
               <span className="text-error text-sm mt-1">{errors.email}</span>
@@ -135,21 +165,53 @@ const SignUp = () => {
           </div>
 
           {/* Password */}
-          <div className="form-control mb-1">
+          <div className="form-control mb-3">
             <label className="label">
               <span className="label-text">Password</span>
             </label>
-            <input
-              type="password"
-              className={`input input-bordered w-full ${
-                errors.password ? "input-error" : ""
-              }`}
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                className={`input input-bordered w-full pr-10 ${
+                  errors.password ? "input-error" : ""
+                }`}
+                placeholder="Enter your password"
+                value={form.password}
+                onChange={handleChange}
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-2 flex items-center text-sm text-gray-500"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
             {errors.password && (
               <span className="text-error text-sm mt-1">{errors.password}</span>
+            )}
+          </div>
+
+          {/* Confirm Password */}
+          <div className="form-control mb-3">
+            <label className="label">
+              <span className="label-text">Confirm Password</span>
+            </label>
+            <input
+              type="password"
+              name="confirmPassword"
+              className={`input input-bordered w-full ${
+                errors.confirmPassword ? "input-error" : ""
+              }`}
+              placeholder="Re-enter your password"
+              value={form.confirmPassword}
+              onChange={handleChange}
+            />
+            {errors.confirmPassword && (
+              <span className="text-error text-sm mt-1">
+                {errors.confirmPassword}
+              </span>
             )}
           </div>
 
@@ -158,19 +220,23 @@ const SignUp = () => {
             <p className="text-error text-sm text-center mt-2">{serverError}</p>
           )}
 
-          {/* Submit button */}
+          {/* Submit Button */}
           <button
             type="submit"
             className="btn btn-primary w-full mt-4"
             disabled={loading}
           >
-            {loading ? "Creating account..." : "Sign Up"}
+            {loading ? (
+              <span className="loading loading-spinner loading-sm"></span>
+            ) : (
+              "Sign Up"
+            )}
           </button>
         </form>
 
-        {/* Link to login */}
+        {/* Login Link */}
         <p className="text-center mt-4 text-sm">
-          Already have a profile?{" "}
+          Already have an account?{" "}
           <Link
             to="/login"
             className="text-primary hover:underline font-medium"

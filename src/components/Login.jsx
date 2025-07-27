@@ -1,60 +1,75 @@
+import React, { useState, useCallback, useMemo } from "react";
 import axios from "axios";
-import React, { useState } from "react";
 import { useDispatch } from "react-redux";
-import { addUser } from "../utils/userSlice";
 import { Link, useNavigate } from "react-router-dom";
+import { addUser } from "../utils/userSlice";
 import { BASE_URL } from "../utils/constants";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const validate = () => {
-    const errors = {};
+  const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
+
+  const validate = useCallback(() => {
+    const { email, password } = formData;
+    const newErrors = {};
+
     if (!email.trim()) {
-      errors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.email = "Invalid email format";
+      newErrors.email = "Email is required";
+    } else if (!emailRegex.test(email)) {
+      newErrors.email = "Invalid email format";
     }
 
     if (!password.trim()) {
-      errors.password = "Password is required";
+      newErrors.password = "Password is required";
     } else if (password.length < 6) {
-      errors.password = "Password must be at least 6 characters";
+      newErrors.password = "Password must be at least 6 characters";
     }
 
-    setErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData, emailRegex]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
-
-    setLoading(true);
+  const handleChange = useCallback((e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
     setServerError("");
+  }, []);
 
-    try {
-      const res = await axios.post(
-        `${BASE_URL}/login`,
-        { email, password },
-        { withCredentials: true }
-      );
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!validate()) return;
 
-      dispatch(addUser(res.data?.data));
-      navigate("/");
-    } catch (error) {
-      const errorMsg = error?.response?.data || "Login failed";
-      setServerError(errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      setServerError("");
+
+      try {
+        const res = await axios.post(`${BASE_URL}/api/auth/login`, formData, {
+          withCredentials: true,
+        });
+
+        dispatch(addUser(res.data?.data));
+        navigate("/");
+      } catch (error) {
+        const errorMsg =
+          error?.response?.data?.message ||
+          error?.response?.data ||
+          "Login failed. Please try again.";
+        setServerError(errorMsg);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [formData, dispatch, navigate, validate]
+  );
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-100 px-4">
@@ -63,61 +78,82 @@ const Login = () => {
           Login
         </h2>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
+          {/* Email */}
           <div className="form-control mb-4">
-            <label className="label">
+            <label htmlFor="email" className="label">
               <span className="label-text">Email</span>
             </label>
             <input
               type="email"
+              name="email"
+              id="email"
               placeholder="Enter your email"
               className={`input input-bordered ${
                 errors.email ? "input-error" : ""
               }`}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formData.email}
+              onChange={handleChange}
             />
             {errors.email && (
               <span className="text-error text-sm mt-1">{errors.email}</span>
             )}
           </div>
 
+          {/* Password */}
           <div className="form-control mb-4">
-            <label className="label">
+            <label htmlFor="password" className="label">
               <span className="label-text">Password</span>
             </label>
-            <input
-              type="password"
-              placeholder="Enter your password"
-              className={`input input-bordered ${
-                errors.password ? "input-error" : ""
-              }`}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                id="password"
+                placeholder="Enter your password"
+                className={`input input-bordered w-full pr-12 ${
+                  errors.password ? "input-error" : ""
+                }`}
+                value={formData.password}
+                onChange={handleChange}
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500"
+                onClick={() => setShowPassword((prev) => !prev)}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
             {errors.password && (
               <span className="text-error text-sm mt-1">{errors.password}</span>
             )}
           </div>
 
+          {/* Server Error */}
           {serverError && (
             <p className="text-error text-sm text-center mb-2">{serverError}</p>
           )}
 
+          {/* Submit */}
           <div className="form-control mt-4">
             <button
               type="submit"
               className="btn btn-primary w-full"
               disabled={loading}
             >
+              {loading && (
+                <span className="loading loading-spinner loading-sm mr-2" />
+              )}
               {loading ? "Logging in..." : "Login"}
             </button>
           </div>
         </form>
 
+        {/* Signup Redirect */}
         <div className="mt-4 text-center">
           <p className="text-sm">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               to="/signup"
               className="text-primary hover:underline font-medium"

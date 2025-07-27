@@ -1,64 +1,102 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import UserCard from "./UserCard";
 import axios from "axios";
 import { BASE_URL } from "../utils/constants";
 import { useDispatch } from "react-redux";
 import { addUser } from "../utils/userSlice";
 
-const EditProfile = ({ user }) => {
+const initialToast = { message: "", type: "success" };
+
+const EditProfile = React.memo(({ user }) => {
   const dispatch = useDispatch();
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [profileUrl, setProfileUrl] = useState("");
-  const [age, setAge] = useState(0);
-  const [gender, setGender] = useState("");
-  const [about, setAbout] = useState("");
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    profileUrl: "",
+    age: "",
+    gender: "",
+    about: "",
+    skills: "", // Comma-separated string for UI
+  });
 
-  const [toast, setToast] = useState({ message: "", type: "success" });
+  const [errors, setErrors] = useState({});
+  const [toast, setToast] = useState(initialToast);
 
   useEffect(() => {
     if (user) {
-      setFirstName(user.firstName || "");
-      setLastName(user.lastName || "");
-      setProfileUrl(user.profileUrl || "");
-      setAge(user.age || 0);
-      setGender(user.gender || "");
-      setAbout(user.about || "");
+      setFormData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        profileUrl: user.profileUrl || "",
+        age: user.age || "",
+        gender: user.gender || "",
+        about: user.about || "",
+        skills: user.skills?.join(", ") || "",
+      });
     }
   }, [user]);
 
   useEffect(() => {
     if (toast.message) {
-      const timer = setTimeout(() => {
-        setToast({ message: "", type: "success" });
-      }, 3000);
+      const timer = setTimeout(() => setToast(initialToast), 3000);
       return () => clearTimeout(timer);
     }
   }, [toast]);
 
-  const showToast = (message, type = "success") => {
+  const showToast = useCallback((message, type = "success") => {
     setToast({ message, type });
+  }, []);
+
+  const validate = useCallback(() => {
+    const newErrors = {};
+    if (!formData.firstName.trim())
+      newErrors.firstName = "First name is required";
+    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
+    if (!formData.profileUrl.trim())
+      newErrors.profileUrl = "Profile URL is required";
+    if (!formData.age || formData.age < 13)
+      newErrors.age = "Valid age is required";
+    if (!formData.gender.trim()) newErrors.gender = "Gender is required";
+    if (!formData.about.trim()) newErrors.about = "About section is required";
+    if (!formData.skills.trim()) newErrors.skills = "Skills are required";
+    return newErrors;
+  }, [formData]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "age" ? +value : value,
+    }));
   };
 
   const saveProfile = async () => {
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length) {
+      setErrors(validationErrors);
+      showToast("Please fix validation errors", "error");
+      return;
+    }
+
     try {
-      const res = await axios.patch(
-        `${BASE_URL}/profile/edit`,
-        {
-          firstName,
-          lastName,
-          profileUrl,
-          age,
-          gender,
-          about,
-        },
-        { withCredentials: true }
-      );
-      dispatch(addUser(res?.data?.data));
+      const payload = {
+        ...formData,
+        skills: formData.skills
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter((skill) => skill !== ""),
+      };
+
+      const res = await axios.patch(`${BASE_URL}/api/profile/edit`, payload, {
+        withCredentials: true,
+      });
+
+      dispatch(addUser(res.data.data));
       showToast("Profile updated successfully", "success");
+      setErrors({});
     } catch (error) {
-      console.error(error.response?.data || error.message);
+      console.error(error?.response?.data || error.message);
       showToast("Something went wrong", "error");
     }
   };
@@ -67,7 +105,7 @@ const EditProfile = ({ user }) => {
 
   return (
     <div className="flex flex-wrap justify-center gap-8 my-8 px-4 relative">
-      {/* JSX Toast */}
+      {/* Toast Message */}
       {toast.message && (
         <div className="toast toast-top toast-end z-50">
           <div
@@ -85,74 +123,47 @@ const EditProfile = ({ user }) => {
         <div className="card-body">
           <h2 className="card-title">Edit Profile</h2>
 
-          <fieldset className="fieldset mb-2">
-            <legend className="fieldset-legend">First Name</legend>
-            <input
-              type="text"
-              className="input w-full"
-              placeholder="Type here"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-            />
-          </fieldset>
+          {[
+            { label: "First Name", name: "firstName" },
+            { label: "Last Name", name: "lastName" },
+            { label: "Profile URL", name: "profileUrl" },
+            { label: "Age", name: "age", type: "number" },
+            { label: "About", name: "about" },
+            { label: "Skills (comma separated)", name: "skills" },
+          ].map(({ label, name, type = "text" }) => (
+            <fieldset className="fieldset mb-2" key={name}>
+              <legend className="fieldset-legend">{label}</legend>
+              <input
+                name={name}
+                type={type}
+                className="input w-full"
+                placeholder="Type here"
+                value={formData[name]}
+                onChange={handleInputChange}
+              />
+              {errors[name] && (
+                <p className="text-error text-xs mt-1">{errors[name]}</p>
+              )}
+            </fieldset>
+          ))}
 
-          <fieldset className="fieldset mb-2">
-            <legend className="fieldset-legend">Last Name</legend>
-            <input
-              type="text"
-              className="input w-full"
-              placeholder="Type here"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-            />
-          </fieldset>
-
-          <fieldset className="fieldset mb-2">
-            <legend className="fieldset-legend">Profile URL</legend>
-            <input
-              type="text"
-              className="input w-full"
-              placeholder="Type here"
-              value={profileUrl}
-              onChange={(e) => setProfileUrl(e.target.value)}
-            />
-          </fieldset>
-
-          <fieldset className="fieldset mb-2">
-            <legend className="fieldset-legend">Age</legend>
-            <input
-              type="number"
-              className="input w-full"
-              placeholder="Type here"
-              value={age}
-              onChange={(e) => setAge(Number(e.target.value))}
-            />
-          </fieldset>
-
-          {/* Gender Dropdown */}
+          {/* Gender Select */}
           <fieldset className="fieldset mb-2">
             <legend className="fieldset-legend">Gender</legend>
             <select
+              name="gender"
               className="select select-bordered w-full"
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
+              value={formData.gender}
+              onChange={handleInputChange}
             >
               <option value="">Select gender</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
               <option value="others">Others</option>
             </select>
-          </fieldset>
-
-          <fieldset className="fieldset mb-2">
-            <legend className="fieldset-legend">About</legend>
-            <input
-              type="text"
-              className="input w-full"
-              placeholder="Type here"
-              value={about}
-              onChange={(e) => setAbout(e.target.value)}
-            />
+            {errors.gender && (
+              <p className="text-error text-xs mt-1">{errors.gender}</p>
+            )}
           </fieldset>
 
           <div className="card-actions justify-center">
@@ -166,12 +177,15 @@ const EditProfile = ({ user }) => {
       {/* Live Preview */}
       <div className="w-full md:w-96">
         <UserCard
-          user={{ firstName, lastName, profileUrl, age, gender, about }}
+          user={{
+            ...formData,
+            skills: formData.skills.split(",").map((s) => s.trim()),
+          }}
           isFeedCard={false}
         />
       </div>
     </div>
   );
-};
+});
 
 export default EditProfile;

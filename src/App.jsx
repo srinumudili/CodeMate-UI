@@ -2,7 +2,6 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Outlet } from "react-router-dom";
 import axios from "axios";
-import { BASE_URL } from "./utils/constants";
 import { addUser } from "./utils/userSlice";
 
 const Header = lazy(() => import("./components/Header"));
@@ -16,9 +15,12 @@ function App() {
 
   const fetchUser = useCallback(async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/profile/view`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_BASE_URL}/api/profile/view`,
+        {
+          withCredentials: true,
+        }
+      );
       dispatch(addUser(res.data));
     } catch (error) {
       if (error?.response?.status === 401) {

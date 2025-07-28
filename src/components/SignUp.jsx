@@ -3,7 +3,6 @@ import React, { useState, useMemo, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { addUser } from "../utils/userSlice";
 import { Link, useNavigate } from "react-router-dom";
-import { BASE_URL } from "../utils/constants";
 
 const SignUp = () => {
   const [form, setForm] = useState({
@@ -68,7 +67,7 @@ const SignUp = () => {
 
     try {
       const res = await axios.post(
-        `${BASE_URL}/api/auth/signup`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/auth/signup`,
         {
           firstName: form.firstName,
           lastName: form.lastName,

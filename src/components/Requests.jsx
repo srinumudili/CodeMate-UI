@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
-import { BASE_URL } from "../utils/constants";
 import { addRequest, removeRequest } from "../utils/requestSlice";
 import RequestShimmer from "./RequestShimmer";
+import { removeFeed } from "../utils/feedSlice";
 
 const Requests = () => {
   const [loading, setLoading] = useState(true);
@@ -12,9 +12,12 @@ const Requests = () => {
 
   const fetchRequests = useCallback(async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/user/requests`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_BASE_URL}/api/user/requests`,
+        {
+          withCredentials: true,
+        }
+      );
       dispatch(addRequest(res?.data?.data));
     } catch (error) {
       console.error(error.response?.data || error.message);
@@ -27,11 +30,20 @@ const Requests = () => {
     async (status, requestId) => {
       try {
         await axios.post(
-          `${BASE_URL}/api/requests/review/${requestId}`,
+          `${
+            import.meta.env.VITE_API_BASE_URL
+          }/api/requests/review/${requestId}`,
           { status },
           { withCredentials: true }
         );
         dispatch(removeRequest(requestId));
+        if (status === "accepted") {
+          const request = requests.find((req) => req._id === requestId);
+          const connectedUserId = request?.fromUserId?._id;
+          if (connectedUserId) {
+            dispatch(removeFeed(connectedUserId));
+          }
+        }
       } catch (error) {
         console.error(error.response?.data || error.message);
       }
@@ -44,7 +56,7 @@ const Requests = () => {
   }, [fetchRequests]);
 
   const renderedRequests = useMemo(() => {
-    return requests.map((request) => {
+    return requests?.map((request) => {
       const { _id, firstName, lastName, profileUrl, about } =
         request.fromUserId;
 

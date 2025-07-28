@@ -2,7 +2,6 @@ import React, { useCallback } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { removeFeed } from "../utils/feedSlice";
-import { BASE_URL } from "../utils/constants";
 
 const UserCard = ({ user, isFeedCard }) => {
   const dispatch = useDispatch();
@@ -11,7 +10,7 @@ const UserCard = ({ user, isFeedCard }) => {
     async (status, userId) => {
       try {
         await axios.post(
-          `${BASE_URL}/api/requests/${userId}`,
+          `${import.meta.env.VITE_API_BASE_URL}/api/requests/${userId}`,
           { status },
           { withCredentials: true }
         );

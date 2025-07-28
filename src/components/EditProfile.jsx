@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import UserCard from "./UserCard";
 import axios from "axios";
-import { BASE_URL } from "../utils/constants";
 import { useDispatch } from "react-redux";
 import { addUser } from "../utils/userSlice";
 
@@ -88,9 +87,13 @@ const EditProfile = React.memo(({ user }) => {
           .filter((skill) => skill !== ""),
       };
 
-      const res = await axios.patch(`${BASE_URL}/api/profile/edit`, payload, {
-        withCredentials: true,
-      });
+      const res = await axios.patch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/profile/edit`,
+        payload,
+        {
+          withCredentials: true,
+        }
+      );
 
       dispatch(addUser(res.data.data));
       showToast("Profile updated successfully", "success");

@@ -6,7 +6,6 @@ import axios from "axios";
 import UserCard from "./UserCard";
 import UserCardShimmer from "./UserCardShimmer";
 
-import { BASE_URL } from "../utils/constants";
 import { addFeed } from "../utils/feedSlice";
 
 const Feed = () => {
@@ -24,9 +23,12 @@ const Feed = () => {
     }
 
     try {
-      const res = await axios.get(`${BASE_URL}/api/user/feed`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_BASE_URL}/api/user/feed`,
+        {
+          withCredentials: true,
+        }
+      );
       dispatch(addFeed(res.data?.users));
     } catch (error) {
       if (error?.response?.status === 401) {

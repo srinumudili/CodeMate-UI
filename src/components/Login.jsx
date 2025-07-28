@@ -3,7 +3,6 @@ import axios from "axios";
 import { useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { addUser } from "../utils/userSlice";
-import { BASE_URL } from "../utils/constants";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -52,9 +51,13 @@ const Login = () => {
       setServerError("");
 
       try {
-        const res = await axios.post(`${BASE_URL}/api/auth/login`, formData, {
-          withCredentials: true,
-        });
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_BASE_URL}/api/auth/login`,
+          formData,
+          {
+            withCredentials: true,
+          }
+        );
 
         dispatch(addUser(res.data?.data));
         navigate("/");

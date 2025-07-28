@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { BASE_URL } from "../utils/constants";
 import { addConnection } from "../utils/connectionSlice";
 import ConnectionsShimmer from "./ConnectionsShimmer";
 
@@ -14,9 +13,12 @@ const Connections = () => {
 
   const fetchConnections = useCallback(async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/user/connections`, {
-        withCredentials: true,
-      });
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_BASE_URL}/api/user/connections`,
+        {
+          withCredentials: true,
+        }
+      );
       dispatch(addConnection(res?.data?.data));
     } catch (error) {
       console.error(error?.response?.data || error.message);

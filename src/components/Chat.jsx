@@ -3,7 +3,6 @@ import { useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import { createSocketConnection } from "../utils/socket";
 import axios from "axios";
-import { BASE_URL } from "../utils/constants";
 
 const Chat = () => {
   const { targetId } = useParams();
@@ -32,7 +31,9 @@ const Chat = () => {
 
       setLoadingMessages(true);
       const chat = await axios.get(
-        `${BASE_URL}/api/chat/${targetId}?page=${requestedPage}&limit=20`,
+        `${
+          import.meta.env.VITE_API_BASE_URL
+        }/api/chat/${targetId}?page=${requestedPage}&limit=20`,
         {
           withCredentials: true,
         }

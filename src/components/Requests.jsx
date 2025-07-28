@@ -29,7 +29,7 @@ const Requests = () => {
   const reviewRequest = useCallback(
     async (status, requestId) => {
       try {
-        await axios.post(
+        await axios.patch(
           `${
             import.meta.env.VITE_API_BASE_URL
           }/api/requests/review/${requestId}`,

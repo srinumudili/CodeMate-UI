@@ -10,7 +10,7 @@ const UserCard = ({ user, isFeedCard }) => {
     async (status, userId) => {
       try {
         await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/api/requests/${userId}`,
+          `${import.meta.env.VITE_API_BASE_URL}/api/requests/send/${userId}`,
           { status },
           { withCredentials: true }
         );

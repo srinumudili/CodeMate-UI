@@ -15,9 +15,7 @@ const Connections = () => {
     try {
       const res = await axios.get(
         `${import.meta.env.VITE_API_BASE_URL}/api/user/connections`,
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
       dispatch(addConnection(res?.data?.data));
     } catch (error) {
@@ -35,6 +33,9 @@ const Connections = () => {
     }
   }, [fetchConnections, connections]);
 
+  const getInitials = (firstName, lastName) =>
+    `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase();
+
   const renderedConnections = useMemo(
     () =>
       connections?.map((user) => (
@@ -43,21 +44,27 @@ const Connections = () => {
           className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 bg-base-100 rounded-2xl shadow-md p-5 hover:bg-base-300 transition-colors"
         >
           <div className="flex items-center gap-4 w-full">
-            <img
-              src={user.profileUrl || "https://placehold.co/100x100"}
-              alt="Profile"
-              className="w-20 h-20 rounded-full object-cover border-4 border-primary"
-              loading="lazy"
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "https://placehold.co/100x100";
-              }}
-            />
+            {user.profileUrl ? (
+              <img
+                src={user.profileUrl}
+                alt="Profile"
+                className="w-20 h-20 rounded-full object-cover border-4 border-primary"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "";
+                }}
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-primary text-white font-bold text-xl flex items-center justify-center border-4 border-primary">
+                {getInitials(user.firstName, user.lastName)}
+              </div>
+            )}
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-white capitalize">
+              <h2 className="text-xl font-semibold text-base-content capitalize">
                 {user.firstName} {user.lastName}
               </h2>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-base-content capitalize">
                 {user.age && user.gender && `${user.age}, ${user.gender}`}
               </p>
               {user.about && (
@@ -81,7 +88,7 @@ const Connections = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-base-200 py-10 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-center text-4xl font-bold text-white mb-10">
+        <h1 className="text-center text-4xl font-bold text-base-content mb-10">
           Your Connections
         </h1>
         <div className="max-w-4xl mx-auto space-y-6">
@@ -96,7 +103,7 @@ const Connections = () => {
   if (!connections || connections.length === 0) {
     return (
       <div className="min-h-screen bg-base-200 flex items-center justify-center">
-        <h1 className="text-2xl font-semibold text-gray-400">
+        <h1 className="text-2xl font-semibold text-neutral-content">
           No Connections Found
         </h1>
       </div>
@@ -105,7 +112,7 @@ const Connections = () => {
 
   return (
     <div className="min-h-screen bg-base-200 py-10 px-4 sm:px-6 lg:px-8">
-      <h1 className="text-center text-4xl font-bold text-white mb-10">
+      <h1 className="text-center text-4xl font-bold text-base-content mb-10">
         Your Connections
       </h1>
       <div className="max-w-4xl mx-auto space-y-6">{renderedConnections}</div>

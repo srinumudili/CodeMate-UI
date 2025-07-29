@@ -1,8 +1,9 @@
-import axios from "axios";
 import React, { useState, useMemo, useCallback } from "react";
 import { useDispatch } from "react-redux";
-import { addUser } from "../utils/userSlice";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { addUser } from "../utils/userSlice";
+import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 
 const SignUp = () => {
   const [form, setForm] = useState({
@@ -89,7 +90,7 @@ const SignUp = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-100 px-4">
-      <div className="w-full max-w-md bg-base-200 backdrop-blur-lg bg-opacity-70 shadow-2xl rounded-2xl p-8 border border-base-300">
+      <div className="w-full max-w-md bg-base-200 shadow-lg rounded-2xl p-8 border border-base-300">
         <h2 className="text-3xl font-bold text-center text-primary mb-6">
           Sign Up
         </h2>
@@ -106,20 +107,19 @@ const SignUp = () => {
             <label className="label">
               <span className="label-text">First Name</span>
             </label>
-            <input
-              type="text"
-              name="firstName"
-              className={`input input-bordered w-full ${
-                errors.firstName ? "input-error" : ""
-              }`}
-              placeholder="Enter your first name"
-              value={form.firstName}
-              onChange={handleChange}
-            />
+            <label className="input input-bordered flex items-center gap-2">
+              <User className="w-5 h-5 text-base-content" />
+              <input
+                type="text"
+                name="firstName"
+                className="grow"
+                placeholder="Tony"
+                value={form.firstName}
+                onChange={handleChange}
+              />
+            </label>
             {errors.firstName && (
-              <span className="text-error text-sm mt-1">
-                {errors.firstName}
-              </span>
+              <p className="text-error text-sm mt-1">{errors.firstName}</p>
             )}
           </div>
 
@@ -128,18 +128,19 @@ const SignUp = () => {
             <label className="label">
               <span className="label-text">Last Name</span>
             </label>
-            <input
-              type="text"
-              name="lastName"
-              className={`input input-bordered w-full ${
-                errors.lastName ? "input-error" : ""
-              }`}
-              placeholder="Enter your last name"
-              value={form.lastName}
-              onChange={handleChange}
-            />
+            <label className="input input-bordered flex items-center gap-2">
+              <User className="w-5 h-5 text-base-content" />
+              <input
+                type="text"
+                name="lastName"
+                className="grow"
+                placeholder="Stark"
+                value={form.lastName}
+                onChange={handleChange}
+              />
+            </label>
             {errors.lastName && (
-              <span className="text-error text-sm mt-1">{errors.lastName}</span>
+              <p className="text-error text-sm mt-1">{errors.lastName}</p>
             )}
           </div>
 
@@ -148,18 +149,19 @@ const SignUp = () => {
             <label className="label">
               <span className="label-text">Email</span>
             </label>
-            <input
-              type="email"
-              name="email"
-              className={`input input-bordered w-full ${
-                errors.email ? "input-error" : ""
-              }`}
-              placeholder="Enter your email"
-              value={form.email}
-              onChange={handleChange}
-            />
+            <label className="input input-bordered flex items-center gap-2">
+              <Mail className="w-5 h-5 text-base-content" />
+              <input
+                type="email"
+                name="email"
+                className="grow"
+                placeholder="you@example.com"
+                value={form.email}
+                onChange={handleChange}
+              />
+            </label>
             {errors.email && (
-              <span className="text-error text-sm mt-1">{errors.email}</span>
+              <p className="text-error text-sm mt-1">{errors.email}</p>
             )}
           </div>
 
@@ -168,27 +170,29 @@ const SignUp = () => {
             <label className="label">
               <span className="label-text">Password</span>
             </label>
-            <div className="relative">
+            <label className="input input-bordered flex items-center gap-2">
+              <Lock className="w-5 h-5 text-base-content" />
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
-                className={`input input-bordered w-full pr-10 ${
-                  errors.password ? "input-error" : ""
-                }`}
-                placeholder="Enter your password"
+                className="grow"
+                placeholder="Enter password"
                 value={form.password}
                 onChange={handleChange}
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-2 flex items-center text-sm text-gray-500"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? "Hide" : "Show"}
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5 text-base-content" />
+                ) : (
+                  <Eye className="w-5 h-5 text-base-content" />
+                )}
               </button>
-            </div>
+            </label>
             {errors.password && (
-              <span className="text-error text-sm mt-1">{errors.password}</span>
+              <p className="text-error text-sm mt-1">{errors.password}</p>
             )}
           </div>
 
@@ -197,29 +201,28 @@ const SignUp = () => {
             <label className="label">
               <span className="label-text">Confirm Password</span>
             </label>
-            <input
-              type="password"
-              name="confirmPassword"
-              className={`input input-bordered w-full ${
-                errors.confirmPassword ? "input-error" : ""
-              }`}
-              placeholder="Re-enter your password"
-              value={form.confirmPassword}
-              onChange={handleChange}
-            />
+            <label className="input input-bordered flex items-center gap-2">
+              <Lock className="w-5 h-5 text-base-content" />
+              <input
+                type="password"
+                name="confirmPassword"
+                className="grow"
+                placeholder="Re-enter password"
+                value={form.confirmPassword}
+                onChange={handleChange}
+              />
+            </label>
             {errors.confirmPassword && (
-              <span className="text-error text-sm mt-1">
+              <p className="text-error text-sm mt-1">
                 {errors.confirmPassword}
-              </span>
+              </p>
             )}
           </div>
 
-          {/* Server-side error */}
           {serverError && (
             <p className="text-error text-sm text-center mt-2">{serverError}</p>
           )}
 
-          {/* Submit Button */}
           <button
             type="submit"
             className="btn btn-primary w-full mt-4"
@@ -233,7 +236,6 @@ const SignUp = () => {
           </button>
         </form>
 
-        {/* Login Link */}
         <p className="text-center mt-4 text-sm">
           Already have an account?{" "}
           <Link

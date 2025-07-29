@@ -3,6 +3,7 @@ import UserCard from "./UserCard";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { addUser } from "../utils/userSlice";
+import { FaCheckCircle, FaExclamationCircle } from "react-icons/fa";
 
 const initialToast = { message: "", type: "success" };
 
@@ -16,11 +17,12 @@ const EditProfile = React.memo(({ user }) => {
     age: "",
     gender: "",
     about: "",
-    skills: "", // Comma-separated string for UI
+    skills: "",
   });
 
   const [errors, setErrors] = useState({});
   const [toast, setToast] = useState(initialToast);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -55,7 +57,7 @@ const EditProfile = React.memo(({ user }) => {
     if (!formData.profileUrl.trim())
       newErrors.profileUrl = "Profile URL is required";
     if (!formData.age || formData.age < 13)
-      newErrors.age = "Valid age is required";
+      newErrors.age = "Age must be 13 or older";
     if (!formData.gender.trim()) newErrors.gender = "Gender is required";
     if (!formData.about.trim()) newErrors.about = "About section is required";
     if (!formData.skills.trim()) newErrors.skills = "Skills are required";
@@ -74,58 +76,70 @@ const EditProfile = React.memo(({ user }) => {
     const validationErrors = validate();
     if (Object.keys(validationErrors).length) {
       setErrors(validationErrors);
-      showToast("Please fix validation errors", "error");
+      showToast("Please fix the errors", "error");
       return;
     }
 
     try {
+      setLoading(true);
       const payload = {
         ...formData,
         skills: formData.skills
           .split(",")
           .map((skill) => skill.trim())
-          .filter((skill) => skill !== ""),
+          .filter(Boolean),
       };
 
       const res = await axios.patch(
         `${import.meta.env.VITE_API_BASE_URL}/api/profile/edit`,
         payload,
-        {
-          withCredentials: true,
-        }
+        { withCredentials: true }
       );
 
       dispatch(addUser(res.data.data));
-      showToast("Profile updated successfully", "success");
       setErrors({});
+      showToast("Profile updated successfully", "success");
     } catch (error) {
       console.error(error?.response?.data || error.message);
       showToast("Something went wrong", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!user) return <p className="text-center mt-8">Loading user profile...</p>;
+  if (!user)
+    return (
+      <div className="flex justify-center items-center min-h-[50vh]">
+        <div className="skeleton w-64 h-40 rounded-lg"></div>
+      </div>
+    );
 
   return (
     <div className="flex flex-wrap justify-center gap-8 my-8 px-4 relative">
-      {/* Toast Message */}
+      {/* Toast */}
       {toast.message && (
         <div className="toast toast-top toast-end z-50">
           <div
             className={`alert ${
-              toast.type === "error" ? "bg-red-500" : "bg-green-500"
-            } text-white`}
+              toast.type === "error" ? "alert-error" : "alert-success"
+            } text-white gap-2`}
           >
+            {toast.type === "error" ? (
+              <FaExclamationCircle />
+            ) : (
+              <FaCheckCircle />
+            )}
             <span>{toast.message}</span>
           </div>
         </div>
       )}
 
-      {/* Form Card */}
-      <div className="card bg-base-200 w-full md:w-96 p-4">
-        <div className="card-body">
+      {/* Profile Edit Form */}
+      <div className="card bg-base-200 w-full md:w-96 shadow-md p-4">
+        <div className="card-body space-y-3">
           <h2 className="card-title">Edit Profile</h2>
 
+          {/* Inputs */}
           {[
             { label: "First Name", name: "firstName" },
             { label: "Last Name", name: "lastName" },
@@ -134,28 +148,36 @@ const EditProfile = React.memo(({ user }) => {
             { label: "About", name: "about" },
             { label: "Skills (comma separated)", name: "skills" },
           ].map(({ label, name, type = "text" }) => (
-            <fieldset className="fieldset mb-2" key={name}>
-              <legend className="fieldset-legend">{label}</legend>
+            <div className="form-control" key={name}>
+              <label className="label">
+                <span className="label-text">{label}</span>
+              </label>
               <input
-                name={name}
                 type={type}
-                className="input w-full"
-                placeholder="Type here"
+                name={name}
+                className={`input input-bordered ${
+                  errors[name] ? "input-error" : ""
+                }`}
+                placeholder={label}
                 value={formData[name]}
                 onChange={handleInputChange}
               />
               {errors[name] && (
-                <p className="text-error text-xs mt-1">{errors[name]}</p>
+                <span className="text-error text-sm mt-1">{errors[name]}</span>
               )}
-            </fieldset>
+            </div>
           ))}
 
-          {/* Gender Select */}
-          <fieldset className="fieldset mb-2">
-            <legend className="fieldset-legend">Gender</legend>
+          {/* Gender Dropdown */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Gender</span>
+            </label>
             <select
               name="gender"
-              className="select select-bordered w-full"
+              className={`select select-bordered ${
+                errors.gender ? "select-error" : ""
+              }`}
               value={formData.gender}
               onChange={handleInputChange}
             >
@@ -165,13 +187,17 @@ const EditProfile = React.memo(({ user }) => {
               <option value="others">Others</option>
             </select>
             {errors.gender && (
-              <p className="text-error text-xs mt-1">{errors.gender}</p>
+              <span className="text-error text-sm mt-1">{errors.gender}</span>
             )}
-          </fieldset>
+          </div>
 
-          <div className="card-actions justify-center">
-            <button className="btn btn-primary" onClick={saveProfile}>
-              Save Profile
+          <div className="card-actions justify-center mt-4">
+            <button
+              className={`btn btn-primary w-full ${loading ? "loading" : ""}`}
+              onClick={saveProfile}
+              disabled={loading}
+            >
+              {loading ? "Saving..." : "Save Profile"}
             </button>
           </div>
         </div>
@@ -182,7 +208,10 @@ const EditProfile = React.memo(({ user }) => {
         <UserCard
           user={{
             ...formData,
-            skills: formData.skills.split(",").map((s) => s.trim()),
+            skills: formData.skills
+              .split(",")
+              .map((skill) => skill.trim())
+              .filter(Boolean),
           }}
           isFeedCard={false}
         />

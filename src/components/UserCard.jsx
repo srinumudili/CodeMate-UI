@@ -2,6 +2,7 @@ import React, { useCallback } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { removeFeed } from "../utils/feedSlice";
+import { Heart, X } from "lucide-react";
 
 const UserCard = ({ user, isFeedCard }) => {
   const dispatch = useDispatch();
@@ -70,18 +71,18 @@ const UserCard = ({ user, isFeedCard }) => {
           {isFeedCard && (
             <div className="mt-6 flex justify-center gap-5">
               <button
-                className="btn btn-outline btn-error w-12 h-12 text-xl tooltip"
+                className="btn btn-outline btn-error btn-circle tooltip transition-transform hover:scale-110"
                 data-tip="Ignore"
                 onClick={() => handleSendRequest("ignored", _id)}
               >
-                ❌
+                <X className="w-5 h-5" />
               </button>
               <button
-                className="btn btn-primary w-12 h-12 text-xl tooltip"
+                className="btn btn-primary btn-circle tooltip transition-transform hover:scale-110"
                 data-tip="Send Interest"
                 onClick={() => handleSendRequest("interested", _id)}
               >
-                ❤️
+                <Heart className="w-5 h-5" />
               </button>
             </div>
           )}

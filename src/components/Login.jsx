@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import { useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { addUser } from "../utils/userSlice";
 
 const Login = () => {
@@ -54,9 +55,7 @@ const Login = () => {
         const res = await axios.post(
           `${import.meta.env.VITE_API_BASE_URL}/api/auth/login`,
           formData,
-          {
-            withCredentials: true,
-          }
+          { withCredentials: true }
         );
 
         dispatch(addUser(res.data?.data));
@@ -87,17 +86,22 @@ const Login = () => {
             <label htmlFor="email" className="label">
               <span className="label-text">Email</span>
             </label>
-            <input
-              type="email"
-              name="email"
-              id="email"
-              placeholder="Enter your email"
-              className={`input input-bordered ${
+            <label
+              className={`input input-bordered flex items-center gap-2 ${
                 errors.email ? "input-error" : ""
               }`}
-              value={formData.email}
-              onChange={handleChange}
-            />
+            >
+              <Mail size={18} className="text-base-content" />
+              <input
+                type="email"
+                name="email"
+                id="email"
+                placeholder="Enter your email"
+                className="grow bg-transparent outline-none"
+                value={formData.email}
+                onChange={handleChange}
+              />
+            </label>
             {errors.email && (
               <span className="text-error text-sm mt-1">{errors.email}</span>
             )}
@@ -108,26 +112,29 @@ const Login = () => {
             <label htmlFor="password" className="label">
               <span className="label-text">Password</span>
             </label>
-            <div className="relative">
+            <label
+              className={`input input-bordered flex items-center gap-2 pr-2 ${
+                errors.password ? "input-error" : ""
+              }`}
+            >
+              <Lock size={18} className="text-base-content" />
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 id="password"
                 placeholder="Enter your password"
-                className={`input input-bordered w-full pr-12 ${
-                  errors.password ? "input-error" : ""
-                }`}
+                className="grow bg-transparent outline-none"
                 value={formData.password}
                 onChange={handleChange}
               />
               <button
                 type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500"
+                className="text-gray-500"
                 onClick={() => setShowPassword((prev) => !prev)}
               >
-                {showPassword ? "Hide" : "Show"}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
-            </div>
+            </label>
             {errors.password && (
               <span className="text-error text-sm mt-1">{errors.password}</span>
             )}
@@ -153,7 +160,7 @@ const Login = () => {
           </div>
         </form>
 
-        {/* Signup Redirect */}
+        {/* Signup Link */}
         <div className="mt-4 text-center">
           <p className="text-sm">
             Don&apos;t have an account?{" "}

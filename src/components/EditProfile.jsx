@@ -54,8 +54,6 @@ const EditProfile = React.memo(({ user }) => {
     if (!formData.firstName.trim())
       newErrors.firstName = "First name is required";
     if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
-    if (!formData.profileUrl.trim())
-      newErrors.profileUrl = "Profile URL is required";
     if (!formData.age || formData.age < 13)
       newErrors.age = "Age must be 13 or older";
     if (!formData.gender.trim()) newErrors.gender = "Gender is required";
@@ -72,6 +70,40 @@ const EditProfile = React.memo(({ user }) => {
     }));
   };
 
+  const handleProfileImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formDataFile = new FormData();
+    formDataFile.append("profileImage", file);
+
+    try {
+      setLoading(true);
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/upload/upload-profile`,
+        formDataFile,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      // 🔁 Set the new profileUrl
+      setFormData((prev) => ({
+        ...prev,
+        profileUrl: res.data.data?.profileUrl || res.data.data || "",
+      }));
+
+      showToast("Profile image uploaded successfully");
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      showToast("Image upload failed", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
   const saveProfile = async () => {
     const validationErrors = validate();
     if (Object.keys(validationErrors).length) {
@@ -143,7 +175,6 @@ const EditProfile = React.memo(({ user }) => {
           {[
             { label: "First Name", name: "firstName" },
             { label: "Last Name", name: "lastName" },
-            { label: "Profile URL", name: "profileUrl" },
             { label: "Age", name: "age", type: "number" },
             { label: "About", name: "about" },
             { label: "Skills (comma separated)", name: "skills" },
@@ -167,6 +198,29 @@ const EditProfile = React.memo(({ user }) => {
               )}
             </div>
           ))}
+
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Profile Image</span>
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              className="file-input file-input-bordered w-full"
+              onChange={handleProfileImage}
+            />
+          </div>
+
+          {/* 🔁 UPDATED: Show image preview */}
+          {formData.profileUrl && (
+            <div className="flex justify-center my-2">
+              <img
+                src={formData.profileUrl}
+                alt="Profile Preview"
+                className="w-24 h-24 rounded-full object-cover border"
+              />
+            </div>
+          )}
 
           {/* Gender Dropdown */}
           <div className="form-control">

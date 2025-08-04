@@ -74,11 +74,25 @@ const EditProfile = React.memo(({ user }) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("File size must be less than 5MB", "error");
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      showToast("Please select a valid image file", "error");
+      return;
+    }
+
     const formDataFile = new FormData();
     formDataFile.append("profileImage", file);
 
     try {
       setLoading(true);
+      console.log("Uploading file:", file.name, file.type, file.size);
+
       const res = await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/api/upload/upload-profile`,
         formDataFile,
@@ -87,21 +101,47 @@ const EditProfile = React.memo(({ user }) => {
           headers: {
             "Content-Type": "multipart/form-data",
           },
+          timeout: 30000, // 30 second timeout
         }
       );
 
-      // 🔁 Set the new profileUrl
+      console.log("Upload response:", res.data);
+
+      // Handle different response structures
+      const profileUrl =
+        res.data.data?.profileUrl || res.data.profileUrl || res.data.data || "";
+
+      if (!profileUrl) {
+        throw new Error("No profile URL returned from server");
+      }
+
+      // Set the new profileUrl
       setFormData((prev) => ({
         ...prev,
-        profileUrl: res.data.data?.profileUrl || res.data.data || "",
+        profileUrl: profileUrl,
       }));
 
       showToast("Profile image uploaded successfully");
     } catch (error) {
       console.error("Image upload failed:", error);
-      showToast("Image upload failed", "error");
+
+      let errorMessage = "Image upload failed";
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 413) {
+        errorMessage = "File too large. Please choose a smaller image.";
+      } else if (error.code === "ECONNABORTED") {
+        errorMessage = "Upload timeout. Please try again.";
+      } else if (error.message === "Network Error") {
+        errorMessage = "Network error. Please check your connection.";
+      }
+
+      showToast(errorMessage, "error");
     } finally {
       setLoading(false);
+      // Clear the file input
+      e.target.value = "";
     }
   };
   const saveProfile = async () => {

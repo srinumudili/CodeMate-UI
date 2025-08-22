@@ -1,37 +1,21 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import axios from "axios";
+import React, { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { addConnection } from "../utils/connectionSlice";
+import { fetchConnections } from "../utils/redux/connectionSlice";
 import ConnectionsShimmer from "./ConnectionsShimmer";
 
 const Connections = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const connections = useSelector((store) => store.connections);
-  const [loading, setLoading] = useState(true);
-
-  const fetchConnections = useCallback(async () => {
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/user/connections`,
-        { withCredentials: true }
-      );
-      dispatch(addConnection(res?.data?.data));
-    } catch (error) {
-      console.error(error?.response?.data || error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch]);
+  const { items: connections, loading } = useSelector(
+    (state) => state.connections
+  );
 
   useEffect(() => {
     if (!connections || connections.length === 0) {
-      fetchConnections();
-    } else {
-      setLoading(false);
+      dispatch(fetchConnections({ page: 1, limit: 20 }));
     }
-  }, [fetchConnections, connections]);
+  }, [dispatch, connections]);
 
   const getInitials = (firstName, lastName) =>
     `${firstName?.[0] || ""}${lastName?.[0] || ""}`.toUpperCase();
@@ -41,14 +25,15 @@ const Connections = () => {
       connections?.map((user) => (
         <div
           key={user._id}
-          className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 bg-base-100 rounded-2xl shadow-md p-5 hover:bg-base-300 transition-colors"
+          className="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden"
         >
-          <div className="flex items-center gap-4 w-full">
+          <div className="flex flex-col items-center sm:flex-row sm:items-start p-5 gap-4">
+            {/* Avatar */}
             {user.profileUrl ? (
               <img
                 src={user.profileUrl}
                 alt="Profile"
-                className="w-20 h-20 rounded-full object-cover border-4 border-primary"
+                className="w-24 h-24 rounded-full object-cover border-4 border-primary"
                 loading="lazy"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
@@ -56,30 +41,37 @@ const Connections = () => {
                 }}
               />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-primary text-white font-bold text-xl flex items-center justify-center border-4 border-primary">
+              <div className="w-24 h-24 rounded-full bg-primary text-white font-bold text-2xl flex items-center justify-center border-4 border-primary">
                 {getInitials(user.firstName, user.lastName)}
               </div>
             )}
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-base-content capitalize">
+
+            {/* Info + Button */}
+            <div className="flex-1 w-full text-center sm:text-left">
+              <h2 className="text-lg font-semibold text-base-content capitalize mt-2 sm:mt-0">
                 {user.firstName} {user.lastName}
               </h2>
-              <p className="text-sm text-base-content capitalize">
+              <p className="text-sm text-base-content">
                 {user.age && user.gender && `${user.age}, ${user.gender}`}
               </p>
+
               {user.about && (
-                <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                <p
+                  className="text-sm text-base-content mt-1 line-clamp-2 tooltip tooltip-top"
+                  data-tip={user.about}
+                >
                   {user.about}
                 </p>
               )}
+
+              <button
+                onClick={() => navigate(`/`)}
+                className="btn btn-primary btn-sm w-full sm:w-auto mt-3"
+              >
+                Message
+              </button>
             </div>
           </div>
-          <button
-            onClick={() => navigate(`/chat/${user._id}`)}
-            className="btn btn-sm btn-primary px-6 mt-3 sm:mt-0"
-          >
-            Message
-          </button>
         </div>
       )),
     [connections, navigate]
@@ -88,11 +80,11 @@ const Connections = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-base-200 py-10 px-4 sm:px-6 lg:px-8">
-        <h1 className="text-center text-4xl font-bold text-base-content mb-10">
+        <h1 className="text-center text-3xl sm:text-4xl font-bold text-base-content mb-10">
           Your Connections
         </h1>
-        <div className="max-w-4xl mx-auto space-y-6">
-          {[...Array(connections?.length)].map((_, i) => (
+        <div className="max-w-5xl mx-auto grid gap-6 sm:grid-cols-2">
+          {[...Array(4)].map((_, i) => (
             <ConnectionsShimmer key={i} />
           ))}
         </div>
@@ -111,11 +103,13 @@ const Connections = () => {
   }
 
   return (
-    <div className="min-h-screen bg-base-200 py-10 px-4 sm:px-6 lg:px-8">
-      <h1 className="text-center text-4xl font-bold text-base-content mb-10">
+    <div className="min-h-screen bg-base-200 py-8 px-3 sm:px-6 lg:px-8">
+      <h1 className="text-center text-3xl sm:text-4xl font-bold text-base-content mb-8">
         Your Connections
       </h1>
-      <div className="max-w-4xl mx-auto space-y-6">{renderedConnections}</div>
+      <div className="max-w-5xl mx-auto grid gap-5 sm:grid-cols-2">
+        {renderedConnections}
+      </div>
     </div>
   );
 };

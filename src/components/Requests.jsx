@@ -1,142 +1,112 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import axios from "axios";
+// src/components/Request.jsx
+import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { addRequest, removeRequest } from "../utils/requestSlice";
-import { removeFeed } from "../utils/feedSlice";
+import { fetchRequests, reviewRequest } from "../utils/redux/requestSlice";
 import RequestShimmer from "./RequestShimmer";
 
-const FallbackAvatar = () => (
-  <div className="w-16 h-16 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 dark:text-gray-200 text-xl font-semibold">
-    ?
-  </div>
-);
-
-const Requests = () => {
-  const [loading, setLoading] = useState(true);
-  const requests = useSelector((store) => store.requests);
+const Request = () => {
   const dispatch = useDispatch();
-
-  const fetchRequests = useCallback(async () => {
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/user/requests`,
-        { withCredentials: true }
-      );
-      dispatch(addRequest(res?.data?.data));
-    } catch (error) {
-      console.error(error.response?.data || error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch]);
-
-  const reviewRequest = useCallback(
-    async (status, requestId) => {
-      try {
-        await axios.patch(
-          `${
-            import.meta.env.VITE_API_BASE_URL
-          }/api/requests/review/${requestId}`,
-          { status },
-          { withCredentials: true }
-        );
-        dispatch(removeRequest(requestId));
-        if (status === "accepted") {
-          const request = requests.find((req) => req._id === requestId);
-          const connectedUserId = request?.fromUserId?._id;
-          if (connectedUserId) {
-            dispatch(removeFeed(connectedUserId));
-          }
-        }
-      } catch (error) {
-        console.error(error.response?.data || error.message);
-      }
-    },
-    [dispatch, requests]
-  );
+  const { requests, loading, error } = useSelector((state) => state.requests);
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    dispatch(fetchRequests());
+  }, [dispatch]);
 
-  const renderedRequests = useMemo(() => {
-    return requests?.map((request) => {
-      const { _id, firstName, lastName, profileUrl, about } =
-        request.fromUserId;
+  const handleReview = async (requestId, status) => {
+    try {
+      await dispatch(reviewRequest({ status, requestId })).unwrap();
+    } catch (err) {
+      console.error("Review Error:", err);
+    }
+  };
 
-      return (
-        <div
-          key={request._id}
-          className="flex flex-col sm:flex-row sm:items-center justify-between bg-base-200 p-4 rounded-xl shadow transition hover:shadow-lg"
-        >
-          <div className="flex items-center gap-4 flex-1 mb-4 sm:mb-0">
-            <div className="avatar">
-              <div className="w-16 h-16 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden">
-                {profileUrl ? (
-                  <img
-                    src={profileUrl}
-                    alt="profile"
-                    className="object-cover w-full h-full"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = "";
-                    }}
-                  />
-                ) : (
-                  <FallbackAvatar />
-                )}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-lg font-semibold capitalize text-base-content">
-                {firstName} {lastName}
-              </p>
-              <p className="text-sm text-base-content/70 line-clamp-2 max-w-xs">
-                {about || "No about info"}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              className="btn btn-sm btn-outline btn-success"
-              onClick={() => reviewRequest("accepted", request._id)}
-            >
-              Accept
-            </button>
-            <button
-              className="btn btn-sm btn-outline btn-error"
-              onClick={() => reviewRequest("rejected", request._id)}
-            >
-              Reject
-            </button>
-          </div>
-        </div>
-      );
-    });
-  }, [requests, reviewRequest]);
-
-  if (loading) return <RequestShimmer requestCount={requests?.length || 2} />;
-
-  if (!requests?.length) {
+  if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8 min-h-screen text-center">
-        <h1 className="text-xl font-medium text-base-content/70">
-          No Requests Found
+      <div className="flex justify-center p-4">
+        <RequestShimmer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-[60vh]">
+        <div className="alert alert-error shadow-lg w-full max-w-md">
+          <span>{error}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!requests || requests.length === 0) {
+    return (
+      <div className="flex flex-col justify-center items-center h-[60vh]">
+        <h1 className="text-2xl font-bold text-gray-500">
+          Connection Requests
         </h1>
+        <p className="mt-2 text-lg text-gray-400">No connection requests.</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 min-h-screen">
-      <h1 className="text-3xl font-bold text-center text-base-content mb-8">
+    <div className="w-full flex flex-col items-center p-4 gap-6">
+      <h1 className="text-3xl font-bold text-primary mb-2">
         Connection Requests
       </h1>
-      <div className="space-y-4">{renderedRequests}</div>
+
+      {requests.map((req) => (
+        <div
+          key={req._id}
+          className="w-full max-w-md bg-base-100 rounded-xl shadow-md overflow-hidden border border-base-300"
+        >
+          {/* Header */}
+          <div className="flex items-center p-3">
+            <div className="avatar">
+              <div className="w-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+                <img
+                  src={req.fromUserId?.profileUrl}
+                  alt={req.fromUserId?.username}
+                />
+              </div>
+            </div>
+            <div className="ml-3 flex-1 min-w-0">
+              <h2 className="font-semibold text-sm sm:text-base truncate">
+                {req.fromUserId?.firstName} {req.fromUserId?.lastName}
+                {req.fromUserId?.age && (
+                  <span className="ml-1 text-gray-500 text-xs">
+                    ({req.fromUserId.age})
+                  </span>
+                )}
+              </h2>
+              <p
+                className="text-xs text-gray-500 truncate"
+                title={req.fromUserId?.about || "No bio available"}
+              >
+                {req.fromUserId?.about || "No bio available"}
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2 px-3 pb-3">
+            <button
+              className="btn btn-primary btn-xs rounded-full px-4"
+              onClick={() => handleReview(req._id, "accepted")}
+            >
+              Accept
+            </button>
+            <button
+              className="btn btn-outline btn-xs rounded-full px-4"
+              onClick={() => handleReview(req._id, "rejected")}
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
 
-export default Requests;
+export default React.memo(Request);

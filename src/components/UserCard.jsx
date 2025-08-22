@@ -1,27 +1,20 @@
-import React, { useCallback } from "react";
-import axios from "axios";
+import React from "react";
 import { useDispatch } from "react-redux";
-import { removeFeed } from "../utils/feedSlice";
+import { removeFeed } from "../utils/redux/feedSlice";
+import { sendUserRequest } from "../utils/redux/requestSlice";
 import { Heart, X } from "lucide-react";
 
 const UserCard = ({ user, isFeedCard }) => {
   const dispatch = useDispatch();
 
-  const handleSendRequest = useCallback(
-    async (status, userId) => {
-      try {
-        await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/api/requests/send/${userId}`,
-          { status },
-          { withCredentials: true }
-        );
-        dispatch(removeFeed(userId));
-      } catch (error) {
-        console.error(error?.response?.data || "Request failed");
-      }
-    },
-    [dispatch]
-  );
+  const handleSendRequest = async (status, userId) => {
+    try {
+      await dispatch(sendUserRequest({ status, userId })).unwrap();
+      dispatch(removeFeed(userId));
+    } catch (err) {
+      console.error("Request Error:", err);
+    }
+  };
 
   if (!user) return null;
 

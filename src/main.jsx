@@ -8,7 +8,7 @@ import MainContainer from "./components/MainContainer.jsx";
 import Login from "./components/Login.jsx";
 import Profile from "./components/Profile.jsx";
 import { Provider } from "react-redux";
-import appStore from "./utils/appStore.js";
+import appStore from "./utils/redux/appStore.js";
 import Connections from "./components/Connections.jsx";
 import Requests from "./components/Requests.jsx";
 import SignUp from "./components/SignUp.jsx";
@@ -34,22 +34,34 @@ const router = createBrowserRouter([
       },
       {
         path: "/profile",
-        element: <Profile />,
+        element: (
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/connections",
-        element: <Connections />,
+        element: (
+          <ProtectedRoute>
+            <Connections />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/requests",
-        element: <Requests />,
+        element: (
+          <ProtectedRoute>
+            <Requests />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "/signup",
         element: <SignUp />,
       },
       {
-        path: "/chat/:targetId",
+        path: "/messages",
         element: <Chat />,
       },
     ],

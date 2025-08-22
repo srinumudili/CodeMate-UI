@@ -1,46 +1,57 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, Outlet } from "react-router-dom";
-import axios from "axios";
-import { addUser } from "./utils/userSlice";
+import { useNavigate, Outlet, useLocation } from "react-router-dom";
+import { fetchUserProfile, clearError } from "./utils/redux/userSlice";
+import { ToastProvider } from "./utils/context/ToastContext";
+import { fetchConversations } from "./utils/redux/conversationSlice";
+import SocketProvider from "./components/SocketProvider";
 
 const Header = lazy(() => import("./components/Header"));
 const Footer = lazy(() => import("./components/Footer"));
 
 function App() {
   const dispatch = useDispatch();
-  const userData = useSelector((store) => store.user);
+  const userData = useSelector((store) => store.user.user);
+  const location = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-  const fetchUser = useCallback(async () => {
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/profile/view`,
-        {
-          withCredentials: true,
-        }
-      );
-      dispatch(addUser(res.data));
-    } catch (error) {
-      if (error?.response?.status === 401) {
-        navigate("/login");
-      } else {
-        console.error("Error fetching user:", error);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch, navigate]);
-
   useEffect(() => {
-    if (!userData?._id) {
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
-  }, [userData, fetchUser]);
+    const fetchUser = async () => {
+      const publicPaths = ["/login", "/signup"];
+      const isPublic = publicPaths.includes(location.pathname);
 
+      // Skip fetching user profile for public paths
+      if (isPublic) {
+        dispatch(clearError());
+        setLoading(false);
+        return;
+      }
+
+      // Fetch user profile for protected paths
+      try {
+        await dispatch(fetchUserProfile()).unwrap();
+        await dispatch(fetchConversations({ page: 1, limit: 20 })).unwrap();
+        setLoading(false);
+      } catch (error) {
+        setLoading(false);
+        if (error?.status === 401) {
+          navigate("/login", { replace: true });
+        } else {
+          navigate("/login", {
+            replace: true,
+            state: {
+              message: "Unable to connect to server. Please try again later.",
+            },
+          });
+        }
+      }
+    };
+
+    fetchUser();
+  }, [dispatch, navigate, location.pathname]);
+
+  // Show loading spinner while checking auth or fetching user
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">
@@ -50,35 +61,39 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-base-200 text-base-content">
-      {userData?._id && (
-        <Suspense
-          fallback={
-            <div className="h-16 w-full bg-base-200 animate-pulse flex items-center px-4">
-              <div className="w-32 h-6 bg-base-300 rounded-md"></div>
-            </div>
-          }
-        >
-          <Header />
-        </Suspense>
-      )}
+    <ToastProvider>
+      <SocketProvider>
+        <div className="min-h-screen flex flex-col bg-base-200 text-base-content">
+          {userData?._id && (
+            <Suspense
+              fallback={
+                <div className="h-16 w-full bg-base-200 animate-pulse flex items-center px-4">
+                  <div className="w-32 h-6 bg-base-300 rounded-md"></div>
+                </div>
+              }
+            >
+              <Header />
+            </Suspense>
+          )}
 
-      <main className="flex-grow">
-        <Outlet />
-      </main>
+          <main className="flex-grow">
+            <Outlet />
+          </main>
 
-      {userData?._id && (
-        <Suspense
-          fallback={
-            <div className="h-16 w-full bg-base-200 animate-pulse flex items-center justify-center">
-              <div className="w-24 h-4 bg-base-300 rounded-md"></div>
-            </div>
-          }
-        >
-          <Footer />
-        </Suspense>
-      )}
-    </div>
+          {userData?._id && (
+            <Suspense
+              fallback={
+                <div className="h-16 w-full bg-base-200 animate-pulse flex items-center justify-center">
+                  <div className="w-24 h-4 bg-base-300 rounded-md"></div>
+                </div>
+              }
+            >
+              <Footer />
+            </Suspense>
+          )}
+        </div>
+      </SocketProvider>
+    </ToastProvider>
   );
 }
 

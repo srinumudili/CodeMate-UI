@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
-import { addUser } from "../utils/userSlice";
+import { registerUser } from "../utils/redux/userSlice";
 import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 
 const SignUp = () => {
@@ -16,11 +15,11 @@ const SignUp = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
-  const [serverError, setServerError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const { loading, error: serverError } = useSelector((state) => state.user);
 
   const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
 
@@ -57,34 +56,17 @@ const SignUp = () => {
       [e.target.name]: e.target.value,
     }));
     setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
-    setServerError("");
   }, []);
 
   const handleSignUp = async () => {
     if (!validate()) return;
 
-    setLoading(true);
-    setServerError("");
-
     try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/api/auth/signup`,
-        {
-          firstName: form.firstName,
-          lastName: form.lastName,
-          email: form.email,
-          password: form.password,
-        },
-        { withCredentials: true }
-      );
-
-      dispatch(addUser(res.data?.data));
+      await dispatch(registerUser(form)).unwrap();
       navigate("/profile");
     } catch (error) {
-      const errorMsg = error?.response?.data || "Signup failed";
-      setServerError(errorMsg);
-    } finally {
-      setLoading(false);
+      // Error already in Redux; no local state needed
+      console.error(error);
     }
   };
 
@@ -219,10 +201,12 @@ const SignUp = () => {
             )}
           </div>
 
+          {/* Server Error */}
           {serverError && (
             <p className="text-error text-sm text-center mt-2">{serverError}</p>
           )}
 
+          {/* Submit */}
           <button
             type="submit"
             className="btn btn-primary w-full mt-4"
@@ -236,6 +220,7 @@ const SignUp = () => {
           </button>
         </form>
 
+        {/* Login Link */}
         <p className="text-center mt-4 text-sm">
           Already have an account?{" "}
           <Link

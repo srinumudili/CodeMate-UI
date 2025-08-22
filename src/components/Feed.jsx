@@ -1,52 +1,33 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 
 import UserCard from "./UserCard";
 import UserCardShimmer from "./UserCardShimmer";
-
-import { addFeed } from "../utils/feedSlice";
+import { fetchFeed } from "../utils/redux/feedSlice";
 
 const Feed = () => {
-  const feed = useSelector((state) => state.feed);
+  const { feed, loading, error } = useSelector((state) => state.feed);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState("");
-
-  const getFeed = useCallback(async () => {
-    if (feed && feed.length > 0) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/user/feed`,
-        {
-          withCredentials: true,
-        }
-      );
-      dispatch(addFeed(res.data?.users));
-    } catch (error) {
-      if (error?.response?.status === 401) {
-        navigate("/");
-      } else {
-        const message =
-          error?.response?.data?.message || "Failed to load feed.";
-        setErrorMsg(message);
-        console.error("Feed Fetch Error:", message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [dispatch, feed, navigate]);
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    getFeed();
-  }, [getFeed]);
+    const fetchData = async () => {
+      if (!hasFetched.current) {
+        hasFetched.current = true; // ✅ prevents infinite loop
+        try {
+          await dispatch(fetchFeed()).unwrap();
+        } catch (err) {
+          if (err?.status === 401) {
+            navigate("/");
+          }
+        }
+      }
+    };
+
+    fetchData();
+  }, [dispatch, navigate]);
 
   if (loading) {
     return (
@@ -56,11 +37,11 @@ const Feed = () => {
     );
   }
 
-  if (errorMsg) {
+  if (error) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
         <div className="alert alert-error shadow-lg w-full max-w-md">
-          <span>{errorMsg}</span>
+          <span>{error}</span>
         </div>
       </div>
     );

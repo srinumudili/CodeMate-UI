@@ -1,19 +1,19 @@
-import React, { useState, useCallback, useMemo } from "react";
-import axios from "axios";
-import { useDispatch } from "react-redux";
+import { useState, useCallback, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
-import { addUser } from "../utils/userSlice";
+import { loginUser } from "../utils/redux/userSlice";
+import { getSocket } from "../utils/socket";
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
-  const [serverError, setServerError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const { loading, error: serverError } = useSelector((store) => store.user);
 
   const emailRegex = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/, []);
 
@@ -40,7 +40,6 @@ const Login = () => {
   const handleChange = useCallback((e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
-    setServerError("");
   }, []);
 
   const handleSubmit = useCallback(
@@ -48,26 +47,15 @@ const Login = () => {
       e.preventDefault();
       if (!validate()) return;
 
-      setLoading(true);
-      setServerError("");
-
       try {
-        const res = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/api/auth/login`,
-          formData,
-          { withCredentials: true }
-        );
+        await dispatch(loginUser(formData)).unwrap();
+        // Initialize socket
+        const socket = getSocket();
+        if (socket && !socket.connected) socket.connect();
 
-        dispatch(addUser(res.data?.data));
         navigate("/");
-      } catch (error) {
-        const errorMsg =
-          error?.response?.data?.message ||
-          error?.response?.data ||
-          "Login failed. Please try again.";
-        setServerError(errorMsg);
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        console.error(err);
       }
     },
     [formData, dispatch, navigate, validate]
@@ -100,6 +88,7 @@ const Login = () => {
                 className="grow bg-transparent outline-none"
                 value={formData.email}
                 onChange={handleChange}
+                autoComplete="email"
               />
             </label>
             {errors.email && (
@@ -126,6 +115,7 @@ const Login = () => {
                 className="grow bg-transparent outline-none"
                 value={formData.password}
                 onChange={handleChange}
+                autoComplete="current-password"
               />
               <button
                 type="button"
@@ -141,9 +131,13 @@ const Login = () => {
           </div>
 
           {/* Server Error */}
-          {serverError && (
-            <p className="text-error text-sm text-center mb-2">{serverError}</p>
-          )}
+          {serverError &&
+            serverError !== "Failed to fetch user profile" &&
+            serverError !== "Failed to fetch user" && (
+              <p className="text-error text-sm text-center mb-2">
+                {serverError}
+              </p>
+            )}
 
           {/* Submit */}
           <div className="form-control mt-4">

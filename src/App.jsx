@@ -5,6 +5,7 @@ import { fetchUserProfile, clearError } from "./utils/redux/userSlice";
 import { ToastProvider } from "./utils/context/ToastContext";
 import { fetchConversations } from "./utils/redux/conversationSlice";
 import SocketProvider from "./components/SocketProvider";
+import { getSocket } from "./utils/socket";
 
 const Header = lazy(() => import("./components/Header"));
 const Footer = lazy(() => import("./components/Footer"));
@@ -31,18 +32,16 @@ function App() {
       // Fetch user profile for protected paths
       try {
         await dispatch(fetchUserProfile()).unwrap();
+        setLoading(false);
 
-        // Add a small delay to ensure socket connection is established
-        // before fetching conversations
-        setTimeout(async () => {
+        const socket = getSocket();
+        socket.on("connect", async () => {
           try {
             await dispatch(fetchConversations({ page: 1, limit: 20 })).unwrap();
           } catch (convError) {
             console.warn("Failed to fetch conversations:", convError);
-            // Don't fail the entire app if conversations fail
           }
-          setLoading(false);
-        }, 500);
+        });
       } catch (error) {
         setLoading(false);
         if (error?.status === 401) {

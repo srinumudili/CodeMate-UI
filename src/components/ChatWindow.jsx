@@ -53,6 +53,82 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     return !!typingByConversationId?.[conversationId]?.[otherParticipant._id];
   }, [typingByConversationId, conversationId, otherParticipant]);
 
+  // 🆕 WhatsApp-like Last Seen Formatter
+  const formatLastSeen = (lastSeenTimestamp) => {
+    if (!lastSeenTimestamp) return "last seen a long time ago";
+
+    const lastSeen = dayjs(lastSeenTimestamp);
+    const now = dayjs();
+    const diffInMinutes = now.diff(lastSeen, "minute");
+    const diffInHours = now.diff(lastSeen, "hour");
+    const diffInDays = now.diff(lastSeen, "day");
+
+    // Just now (less than 1 minute)
+    if (diffInMinutes < 1) {
+      return "last seen just now";
+    }
+
+    // Minutes ago (1-59 minutes)
+    if (diffInMinutes < 60) {
+      return `last seen ${diffInMinutes} minute${
+        diffInMinutes > 1 ? "s" : ""
+      } ago`;
+    }
+
+    // Hours ago (1-23 hours)
+    if (diffInHours < 24) {
+      return `last seen ${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`;
+    }
+
+    // Today
+    if (lastSeen.isToday()) {
+      return `last seen today at ${lastSeen.format("h:mm A")}`;
+    }
+
+    // Yesterday
+    if (lastSeen.isYesterday()) {
+      return `last seen yesterday at ${lastSeen.format("h:mm A")}`;
+    }
+
+    // This week (within 7 days)
+    if (diffInDays <= 7) {
+      return `last seen ${lastSeen.format("dddd")} at ${lastSeen.format(
+        "h:mm A"
+      )}`;
+    }
+
+    // More than a week ago
+    return `last seen ${lastSeen.format("MM/DD/YYYY")} at ${lastSeen.format(
+      "h:mm A"
+    )}`;
+  };
+
+  // 🆕 Get user status text
+  const getUserStatusText = () => {
+    if (isOtherUserTyping) {
+      return "typing...";
+    }
+
+    if (isOtherUserOnline) {
+      return "online";
+    }
+
+    return formatLastSeen(otherUserLastSeen);
+  };
+
+  // 🆕 Get status color based on online status
+  const getStatusColor = () => {
+    if (isOtherUserTyping) {
+      return "text-blue-500"; // Blue for typing
+    }
+
+    if (isOtherUserOnline) {
+      return "text-green-500"; // Green for online
+    }
+
+    return "text-base-content/50"; // Gray for offline/last seen
+  };
+
   // Load messages when conversation changes
   useEffect(() => {
     if (!conversationId) return;
@@ -73,6 +149,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     if (unreadMessages.length > 0) {
       socket.emit("markAsRead", { conversationId, messageIds: unreadMessages });
       dispatch(markAsRead({ conversationId, messageIds: unreadMessages }));
+      dispatch(resetUnread({ conversationId }));
     }
   }, [messages, conversationId, socket, dispatch, user._id]);
 
@@ -123,6 +200,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         messageIds: unreadMessages,
       });
       dispatch(markAsRead({ conversationId, messageIds: unreadMessages }));
+      dispatch(resetUnread({ conversationId }));
     }
 
     // Pagination for older messages
@@ -334,23 +412,21 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
               />
             </div>
           </div>
+          {/* 🆕 Enhanced online indicator */}
           {isOtherUserOnline && (
-            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
           )}
         </div>
 
-        <div className="ml-3">
+        <div className="ml-3 flex-1">
           <div className="font-semibold">
             {otherParticipant.firstName} {otherParticipant.lastName}
           </div>
-          <div className="text-xs text-base-content/50">
-            {isOtherUserTyping
-              ? "Typing..."
-              : isOtherUserOnline
-              ? "Online"
-              : otherUserLastSeen
-              ? `Last seen ${dayjs(otherUserLastSeen).fromNow()}`
-              : "Offline"}
+          {/* 🆕 Enhanced status display */}
+          <div
+            className={`text-xs ${getStatusColor()} transition-colors duration-200`}
+          >
+            {getUserStatusText()}
           </div>
         </div>
       </div>
@@ -388,9 +464,9 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
             })}
           </div>
         ))}
-        {/* Typing indicator bubble */}
+        {/* 🆕 Enhanced typing indicator bubble */}
         {isOtherUserTyping && (
-          <div className="flex items-center mb-2">
+          <div className="flex items-center mb-2 animate-fade-in">
             <img
               src={otherParticipant.profileUrl}
               alt={otherParticipant.firstName}

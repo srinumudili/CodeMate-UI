@@ -31,8 +31,18 @@ function App() {
       // Fetch user profile for protected paths
       try {
         await dispatch(fetchUserProfile()).unwrap();
-        await dispatch(fetchConversations({ page: 1, limit: 20 })).unwrap();
-        setLoading(false);
+
+        // Add a small delay to ensure socket connection is established
+        // before fetching conversations
+        setTimeout(async () => {
+          try {
+            await dispatch(fetchConversations({ page: 1, limit: 20 })).unwrap();
+          } catch (convError) {
+            console.warn("Failed to fetch conversations:", convError);
+            // Don't fail the entire app if conversations fail
+          }
+          setLoading(false);
+        }, 500);
       } catch (error) {
         setLoading(false);
         if (error?.status === 401) {
@@ -62,9 +72,9 @@ function App() {
 
   return (
     <ToastProvider>
-      <SocketProvider>
-        <div className="min-h-screen flex flex-col bg-base-200 text-base-content">
-          {userData?._id && (
+      {userData?._id ? (
+        <SocketProvider>
+          <div className="min-h-screen flex flex-col bg-base-200 text-base-content">
             <Suspense
               fallback={
                 <div className="h-16 w-full bg-base-200 animate-pulse flex items-center px-4">
@@ -74,13 +84,11 @@ function App() {
             >
               <Header />
             </Suspense>
-          )}
 
-          <main className="flex-grow">
-            <Outlet />
-          </main>
+            <main className="flex-grow">
+              <Outlet />
+            </main>
 
-          {userData?._id && (
             <Suspense
               fallback={
                 <div className="h-16 w-full bg-base-200 animate-pulse flex items-center justify-center">
@@ -90,9 +98,15 @@ function App() {
             >
               <Footer />
             </Suspense>
-          )}
+          </div>
+        </SocketProvider>
+      ) : (
+        <div className="min-h-screen flex flex-col bg-base-200 text-base-content">
+          <main className="flex-grow">
+            <Outlet />
+          </main>
         </div>
-      </SocketProvider>
+      )}
     </ToastProvider>
   );
 }

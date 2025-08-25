@@ -380,9 +380,9 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* Header */}
-      <div className="flex items-center p-4 border-b border-base-300 bg-base-100">
+      <div className="flex items-center p-4 border-b border-base-300 bg-base-100 flex-shrink-0">
         {isMobile && (
           <button
             onClick={onBackToList}
@@ -473,7 +473,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       {/* Input */}
       <form
         onSubmit={handleSendMessage}
-        className="p-4 border-t border-base-300 flex items-center space-x-2 bg-base-100"
+        className="p-4 border-t border-base-300 flex items-center space-x-2 bg-base-100 flex-shrink-0"
       >
         <input
           ref={inputRef}

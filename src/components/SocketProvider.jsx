@@ -5,6 +5,7 @@ import {
   updateConversationLastMessage,
   incrementUnread,
   resetUnread,
+  addConversation, // Add this import
 } from "../utils/redux/conversationSlice";
 import {
   addMessage,
@@ -20,10 +21,24 @@ import {
 const SocketProvider = ({ children }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.user);
+  const { list: conversations } = useSelector((state) => state.conversations); // Add this
 
   // Memoize handlers to prevent unnecessary re-renders
   const handleReceiveMessage = useCallback(
-    (messageData) => {
+    (payload) => {
+      // Extract message data and conversation data from payload
+      const messageData = {
+        _id: payload._id,
+        conversationId: payload.conversationId,
+        sender: payload.sender,
+        receiver: payload.receiver,
+        text: payload.text,
+        attachments: payload.attachments,
+        isRead: payload.isRead,
+        createdAt: payload.createdAt,
+        updatedAt: payload.updatedAt,
+      };
+
       dispatch(
         addMessage({
           conversationId: messageData.conversationId,
@@ -31,12 +46,29 @@ const SocketProvider = ({ children }) => {
         })
       );
 
-      dispatch(
-        updateConversationLastMessage({
-          conversationId: messageData.conversationId,
-          lastMessage: messageData,
-        })
+      // Check if conversation exists in the list
+      const conversationExists = conversations.some(
+        (conv) => conv._id === messageData.conversationId
       );
+
+      // If conversation doesn't exist, add it to the list
+      if (!conversationExists && payload.conversationData) {
+        // Use the complete conversation data from server
+        const newConversation = {
+          ...payload.conversationData,
+          unreadCount: messageData.receiver._id === user._id ? 1 : 0,
+        };
+
+        dispatch(addConversation(newConversation));
+      } else {
+        // Update existing conversation
+        dispatch(
+          updateConversationLastMessage({
+            conversationId: messageData.conversationId,
+            lastMessage: messageData,
+          })
+        );
+      }
 
       // Use current activeConversationId from the callback parameter
       dispatch((_, getState) => {
@@ -53,7 +85,7 @@ const SocketProvider = ({ children }) => {
         }
       });
     },
-    [dispatch]
+    [dispatch, conversations, user._id] // Add dependencies
   );
 
   const handleUserTyping = useCallback(

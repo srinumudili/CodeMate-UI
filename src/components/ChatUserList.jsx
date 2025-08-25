@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import {
   createConversation,
   fetchConversations,
+  addConversation, // Add this import
 } from "../utils/redux/conversationSlice";
 import { fetchConnections } from "../utils/redux/connectionSlice";
 import { setActiveConversation } from "../utils/redux/chatUISlice";
@@ -61,9 +62,27 @@ const ChatUserList = ({ onConversationSelect }) => {
         ).unwrap();
 
         if (result?.conversation) {
+          // Ensure the conversation has proper structure for the list
+          const conversationWithDefaults = {
+            ...result.conversation,
+            unreadCount: 0,
+            lastMessage: null,
+          };
+
+          // Add to conversations list if not already there
+          const existsInList = conversations.some(
+            (conv) => conv._id === result.conversation._id
+          );
+
+          if (!existsInList) {
+            dispatch(addConversation(conversationWithDefaults));
+          }
+
           onConversationSelect(result.conversation._id);
           dispatch(setActiveConversation(result.conversation._id));
           setActiveTab("conversations");
+
+          // Refresh conversations list to ensure consistency
           dispatch(fetchConversations({ page: 1, limit: 20 }));
         }
       }
@@ -71,6 +90,7 @@ const ChatUserList = ({ onConversationSelect }) => {
       console.error("Failed to start conversation:", error);
     }
   };
+
   const filteredConversations = searchTerm.trim()
     ? conversations.filter((conv) => {
         const otherParticipant = conv.participants.find(
@@ -150,8 +170,15 @@ const ChatUserList = ({ onConversationSelect }) => {
     const otherParticipant = conversation.participants.find(
       (p) => p._id !== user._id
     );
+
+    // Handle case where otherParticipant might not exist
+    if (!otherParticipant) {
+      console.warn("Conversation missing other participant:", conversation);
+      return null;
+    }
+
     const isActive = activeConversationId === conversation._id;
-    const isOnline = getOnlineStatus(otherParticipant?._id);
+    const isOnline = getOnlineStatus(otherParticipant._id);
     const unreadCount = conversation.unreadCount || 0;
 
     const getUnreadLabel = () => {
@@ -180,8 +207,12 @@ const ChatUserList = ({ onConversationSelect }) => {
           <div className="avatar">
             <div className="w-12 h-12 rounded-full ring-1 ring-base-300 shadow-sm">
               <img
-                src={otherParticipant?.profileUrl}
-                alt={`${otherParticipant?.firstName} ${otherParticipant?.lastName}`}
+                src={otherParticipant.profileUrl}
+                alt={`${otherParticipant.firstName} ${otherParticipant.lastName}`}
+                onError={(e) => {
+                  // Fallback in case image fails to load
+                  e.target.src = `https://ui-avatars.com/api/?name=${otherParticipant.firstName}+${otherParticipant.lastName}&background=random`;
+                }}
               />
             </div>
           </div>
@@ -201,7 +232,7 @@ const ChatUserList = ({ onConversationSelect }) => {
                   : "font-medium text-base-content/90"
               }`}
             >
-              {otherParticipant?.firstName} {otherParticipant?.lastName}
+              {otherParticipant.firstName} {otherParticipant.lastName}
             </h4>
             <span className="text-xs text-base-content/60 flex-shrink-0">
               {formatTimestamp(conversation.updatedAt)}
@@ -237,6 +268,10 @@ const ChatUserList = ({ onConversationSelect }) => {
               <img
                 src={connection.profileUrl}
                 alt={`${connection.firstName} ${connection.lastName}`}
+                onError={(e) => {
+                  // Fallback in case image fails to load
+                  e.target.src = `https://ui-avatars.com/api/?name=${connection.firstName}+${connection.lastName}&background=random`;
+                }}
               />
             </div>
           </div>
@@ -326,6 +361,11 @@ const ChatUserList = ({ onConversationSelect }) => {
                     ? "No conversations found"
                     : "No conversations yet"}
                 </p>
+                {!searchTerm && (
+                  <p className="text-xs text-base-content/40 mt-2">
+                    Start a conversation by selecting a connection
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -349,6 +389,11 @@ const ChatUserList = ({ onConversationSelect }) => {
                 <p className="text-base-content/60 text-sm">
                   {searchTerm ? "No connections found" : "No connections yet"}
                 </p>
+                {!searchTerm && (
+                  <p className="text-xs text-base-content/40 mt-2">
+                    Connect with people to start messaging
+                  </p>
+                )}
               </div>
             )}
           </div>

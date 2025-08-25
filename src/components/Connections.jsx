@@ -1,13 +1,11 @@
 import React, { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import { fetchConnections } from "../utils/redux/connectionSlice";
 import ConnectionsShimmer from "./ConnectionsShimmer";
 
 const Connections = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { items: connections, loading } = useSelector(
+  const { list: connections, loading } = useSelector(
     (state) => state.connections
   );
 
@@ -25,15 +23,15 @@ const Connections = () => {
       connections?.map((user) => (
         <div
           key={user._id}
-          className="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden"
+          className="card bg-base-100 shadow-md hover:shadow-xl transition-all duration-300 rounded-2xl border border-base-300 overflow-hidden group"
         >
-          <div className="flex flex-col items-center sm:flex-row sm:items-start p-5 gap-4">
+          <div className="flex flex-col items-center sm:flex-row sm:items-center p-6 gap-5">
             {/* Avatar */}
             {user.profileUrl ? (
               <img
                 src={user.profileUrl}
                 alt="Profile"
-                className="w-24 h-24 rounded-full object-cover border-4 border-primary"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-primary transition-transform duration-300 group-hover:scale-105"
                 loading="lazy"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
@@ -41,40 +39,36 @@ const Connections = () => {
                 }}
               />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-primary text-white font-bold text-2xl flex items-center justify-center border-4 border-primary">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-primary text-white font-bold text-xl sm:text-2xl flex items-center justify-center border-2 border-primary group-hover:scale-105 transition-transform duration-300">
                 {getInitials(user.firstName, user.lastName)}
               </div>
             )}
 
-            {/* Info + Button */}
+            {/* Info */}
             <div className="flex-1 w-full text-center sm:text-left">
-              <h2 className="text-lg font-semibold text-base-content capitalize mt-2 sm:mt-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-base-content capitalize">
                 {user.firstName} {user.lastName}
               </h2>
-              <p className="text-sm text-base-content">
-                {user.age && user.gender && `${user.age}, ${user.gender}`}
-              </p>
+
+              {user.age && user.gender && (
+                <p className="text-sm text-neutral">
+                  {user.age}, {user.gender}
+                </p>
+              )}
 
               {user.about && (
                 <p
-                  className="text-sm text-base-content mt-1 line-clamp-2 tooltip tooltip-top"
+                  className="text-sm text-base-content/80 mt-2 line-clamp-2 tooltip tooltip-top"
                   data-tip={user.about}
                 >
                   {user.about}
                 </p>
               )}
-
-              <button
-                onClick={() => navigate(`/`)}
-                className="btn btn-primary btn-sm w-full sm:w-auto mt-3"
-              >
-                Message
-              </button>
             </div>
           </div>
         </div>
       )),
-    [connections, navigate]
+    [connections]
   );
 
   if (loading) {
@@ -107,7 +101,7 @@ const Connections = () => {
       <h1 className="text-center text-3xl sm:text-4xl font-bold text-base-content mb-8">
         Your Connections
       </h1>
-      <div className="max-w-5xl mx-auto grid gap-5 sm:grid-cols-2">
+      <div className="max-w-5xl mx-auto grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {renderedConnections}
       </div>
     </div>

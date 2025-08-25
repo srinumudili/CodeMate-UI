@@ -380,9 +380,9 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   }
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full relative bg-base-100">
       {/* Header */}
-      <div className="flex items-center p-4 border-b border-base-300 bg-base-100 flex-shrink-0">
+      <div className="flex items-center p-4 border-b border-base-300 bg-base-100 flex-shrink-0 sticky top-0 z-20 md:static">
         {isMobile && (
           <button
             onClick={onBackToList}

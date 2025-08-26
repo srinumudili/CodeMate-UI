@@ -380,9 +380,9 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   }
 
   return (
-    <div className="relative h-full bg-base-100 flex flex-col">
+    <div className="h-full bg-base-100 flex flex-col">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center p-4 border-b border-base-300 bg-base-100">
+      <div className="flex items-center p-4 border-b border-base-300 bg-base-100 flex-shrink-0 z-10">
         {isMobile && (
           <button
             onClick={onBackToList}
@@ -420,7 +420,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="overflow-y-auto px-4 space-y-2 bg-base-100 flex-1 mt-[4rem] mb-[4rem]"
+        className="flex-1 overflow-y-auto px-4 space-y-2 bg-base-100"
       >
         {loading && <div className="loading loading-spinner loading-md"></div>}
         {groupedMessages.map((group) => (
@@ -468,7 +468,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       {/* Input */}
       <form
         onSubmit={handleSendMessage}
-        className="absolute bottom-0 left-0 right-0 z-20 p-3 border-t border-base-300 bg-base-100 flex items-center space-x-2"
+        className="flex items-center space-x-2 p-3 border-t border-base-300 bg-base-100 flex-shrink-0"
       >
         <input
           ref={inputRef}

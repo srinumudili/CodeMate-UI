@@ -45,7 +45,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     (p) => p._id !== user._id
   );
 
-  // ✅ Ensure messages is always an array
+  // âœ… Ensure messages is always an array
   const messages = useMemo(() => messageData?.list || [], [messageData]);
   const loading = messageData?.loading || false;
 
@@ -59,7 +59,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     return !!typingByConversationId?.[conversationId]?.[otherParticipant._id];
   }, [typingByConversationId, conversationId, otherParticipant]);
 
-  // 🆕 WhatsApp-like Last Seen Formatter
+  // ðŸ†• WhatsApp-like Last Seen Formatter
   const formatLastSeen = (lastSeenTimestamp) => {
     if (!lastSeenTimestamp) return "last seen a long time ago";
 
@@ -109,7 +109,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     )}`;
   };
 
-  // 🆕 Get user status text
+  // ðŸ†• Get user status text
   const getUserStatusText = () => {
     if (isOtherUserTyping) {
       return "typing...";
@@ -122,7 +122,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     return formatLastSeen(otherUserLastSeen);
   };
 
-  // 🆕 Get status color based on online status
+  // ðŸ†• Get status color based on online status
   const getStatusColor = () => {
     if (isOtherUserTyping) {
       return "text-blue-500"; // Blue for typing
@@ -147,7 +147,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   useEffect(() => {
     if (!conversationId || !socket) return;
 
-    // ✅ Safe access to messages
+    // âœ… Safe access to messages
     const unreadMessages = (messages || [])
       .filter((msg) => !msg.isRead && msg.receiver._id === user._id)
       .map((msg) => msg._id);
@@ -331,7 +331,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
             <div className="px-3 py-2 rounded-2xl bg-base-200 text-base-content/60 italic">
               This message was deleted
             </div>
-            {/* ✅ Time only (no ticks for deleted messages) */}
+            {/* âœ… Time only (no ticks for deleted messages) */}
             <div className="flex justify-end mt-1 text-[10px] text-base-content/40">
               {formatMessageTime(message.createdAt)}
             </div>
@@ -363,7 +363,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
           >
             {message.text}
 
-            {/* ✅ Time + ticks inside bubble */}
+            {/* âœ… Time + ticks inside bubble */}
             <div className="flex items-center justify-end mt-1 space-x-1 text-[10px] text-base-content/60">
               <span>{formatMessageTime(message.createdAt)}</span>
               {isOwnMessage &&
@@ -402,129 +402,109 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   }
 
   return (
-    <div className="h-full min-h-0 bg-base-100 flex flex-col relative">
-      {/* Header - Fixed position to prevent disappearing */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-base-100 border-b border-base-300 md:relative md:top-auto md:left-auto md:right-auto md:z-10">
-        <div className="flex items-center p-4">
-          {isMobile && (
-            <button
-              onClick={onBackToList}
-              className="btn btn-ghost btn-sm btn-circle mr-3"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          )}
-          <div className="relative">
-            <div className="avatar">
-              <div className="w-10 rounded-full">
-                <img
-                  src={otherParticipant.profileUrl}
-                  alt={`${otherParticipant.firstName} ${otherParticipant.lastName}`}
-                />
-              </div>
-            </div>
-            {isOtherUserOnline && (
-              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
-            )}
-          </div>
-          <div className="ml-3 flex-1">
-            <div className="font-semibold">
-              {otherParticipant.firstName} {otherParticipant.lastName}
-            </div>
-            <div
-              className={`text-xs ${getStatusColor()} transition-colors duration-200`}
-            >
-              {getUserStatusText()}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Messages Container - Add top padding on mobile to account for fixed header */}
-      <div
-        className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${
-          isMobile ? "pt-20" : ""
-        }`}
-        style={{
-          height: isMobile ? "calc(100dvh - 140px)" : "auto",
-          maxHeight: isMobile ? "calc(100dvh - 140px)" : "none",
-        }}
-      >
-        <div
-          ref={messagesContainerRef}
-          onScroll={handleScroll}
-          className="px-4 space-y-2 bg-base-100 pb-2"
-        >
-          {loading && (
-            <div className="loading loading-spinner loading-md"></div>
-          )}
-          {groupedMessages.map((group) => (
-            <div key={group.date} className="space-y-2">
-              <div className="flex justify-center my-4">
-                <span className="badge badge-outline text-xs">
-                  {formatDateHeader(group.date)}
-                </span>
-              </div>
-
-              {group.messages.map((msg, idx) => {
-                const nextMsg = group.messages[idx + 1];
-                const isOwnMessage = msg.sender._id === user._id;
-                const showAvatar =
-                  !isOwnMessage &&
-                  (!nextMsg || nextMsg.sender._id !== msg.sender._id);
-
-                return (
-                  <MessageBubble
-                    key={`${msg._id}-${msg.createdAt}`}
-                    message={msg}
-                    showAvatar={showAvatar}
-                  />
-                );
-              })}
-            </div>
-          ))}
-          {isOtherUserTyping && (
-            <div className="flex items-center mb-2 animate-fade-in">
+    <div className="h-full min-h-0 bg-base-100 flex flex-col">
+      {/* Header */}
+      <div className="sticky top-0 flex items-center p-4 border-b border-base-300 bg-base-100 z-20">
+        {isMobile && (
+          <button
+            onClick={onBackToList}
+            className="btn btn-ghost btn-sm btn-circle mr-3"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        )}
+        <div className="relative">
+          <div className="avatar">
+            <div className="w-10 rounded-full">
               <img
                 src={otherParticipant.profileUrl}
-                alt={otherParticipant.firstName}
-                className="w-6 h-6 rounded-full mr-2 self-end"
+                alt={`${otherParticipant.firstName} ${otherParticipant.lastName}`}
               />
-              <div className="px-3 py-2 rounded-2xl bg-base-200 text-base-content flex space-x-1">
-                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>
-              </div>
             </div>
+          </div>
+          {isOtherUserOnline && (
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
           )}
-          <div ref={messagesEndRef} />
+        </div>
+        <div className="ml-3 flex-1">
+          <div className="font-semibold">
+            {otherParticipant.firstName} {otherParticipant.lastName}
+          </div>
+          <div
+            className={`text-xs ${getStatusColor()} transition-colors duration-200`}
+          >
+            {getUserStatusText()}
+          </div>
         </div>
       </div>
 
-      {/* Input - Fixed at bottom to prevent keyboard issues */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-base-100 border-t border-base-300 md:relative md:bottom-auto md:left-auto md:right-auto md:z-10">
-        <form
-          onSubmit={handleSendMessage}
-          className="flex items-center space-x-2 p-3"
-          style={{
-            paddingBottom: isMobile
-              ? "env(safe-area-inset-bottom, 16px)"
-              : "12px",
-          }}
-        >
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Type a message..."
-            value={messageText}
-            onChange={(e) => handleTyping(e.target.value)}
-            className="input input-bordered input-sm flex-1"
-          />
-          <button type="submit" className="btn btn-primary btn-sm">
-            Send
-          </button>
-        </form>
+      {/* Messages (scrollable) */}
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 space-y-2 bg-base-100"
+      >
+        {loading && <div className="loading loading-spinner loading-md"></div>}
+        {groupedMessages.map((group) => (
+          <div key={group.date} className="space-y-2">
+            <div className="flex justify-center my-4">
+              <span className="badge badge-outline text-xs">
+                {formatDateHeader(group.date)}
+              </span>
+            </div>
+
+            {group.messages.map((msg, idx) => {
+              const nextMsg = group.messages[idx + 1];
+              const isOwnMessage = msg.sender._id === user._id;
+              const showAvatar =
+                !isOwnMessage &&
+                (!nextMsg || nextMsg.sender._id !== msg.sender._id);
+
+              return (
+                <MessageBubble
+                  key={`${msg._id}-${msg.createdAt}`}
+                  message={msg}
+                  showAvatar={showAvatar}
+                />
+              );
+            })}
+          </div>
+        ))}
+        {isOtherUserTyping && (
+          <div className="flex items-center mb-2 animate-fade-in">
+            <img
+              src={otherParticipant.profileUrl}
+              alt={otherParticipant.firstName}
+              className="w-6 h-6 rounded-full mr-2 self-end"
+            />
+            <div className="px-3 py-2 rounded-2xl bg-base-200 text-base-content flex space-x-1">
+              <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+              <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+              <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
+
+      {/* Input */}
+      <form
+        onSubmit={handleSendMessage}
+        className="sticky bottom-0 flex items-center space-x-2 p-3 border-t border-base-300 bg-base-100 z-20"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="Type a message..."
+          value={messageText}
+          onChange={(e) => handleTyping(e.target.value)}
+          className="input input-bordered input-sm flex-1"
+        />
+        <button type="submit" className="btn btn-primary btn-sm">
+          Send
+        </button>
+      </form>
     </div>
   );
 };

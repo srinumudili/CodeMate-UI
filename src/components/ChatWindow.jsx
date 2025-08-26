@@ -490,7 +490,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       {/* Input */}
       <form
         onSubmit={handleSendMessage}
-        className="flex items-center space-x-2 p-3 border-t border-base-300 bg-base-100 flex-shrink-0"
+        className="flex items-center space-x-2 p-3 border-t border-base-300 bg-base-100 flex-shrink-0 sticky bottom-0"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <input

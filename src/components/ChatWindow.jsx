@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { getSocket } from "../utils/socket";
 import { fetchMessages, markAsRead } from "../utils/redux/messageSlice";
@@ -177,10 +183,26 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     }
   };
 
-  // Scroll to bottom on new messages or typing changes
+  // // Scroll to bottom on new messages or typing changes
+  // useEffect(() => {
+  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // }, [messages?.length, isOtherUserTyping]);
+
+  // Scroll to bottom (target the messages container, not the page)
+  const scrollToBottom = useCallback((smooth = true) => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+  }, []);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages?.length, isOtherUserTyping]);
+    scrollToBottom(true);
+  }, [messages?.length, isOtherUserTyping, scrollToBottom]);
+
+  // when switching conversations, snap to bottom without page scroll
+  useEffect(() => {
+    scrollToBottom(false);
+  }, [conversationId, scrollToBottom]);
 
   // Handle scroll: pagination & markAsRead
   const handleScroll = (e) => {
@@ -380,7 +402,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   }
 
   return (
-    <div className="h-full bg-base-100 flex flex-col">
+    <div className="h-full min-h-0 bg-base-100 flex flex-col">
       {/* Header */}
       <div className="flex items-center p-4 border-b border-base-300 bg-base-100 flex-shrink-0 z-10">
         {isMobile && (
@@ -420,7 +442,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 space-y-2 bg-base-100"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 space-y-2 bg-base-100"
       >
         {loading && <div className="loading loading-spinner loading-md"></div>}
         {groupedMessages.map((group) => (
@@ -469,6 +491,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       <form
         onSubmit={handleSendMessage}
         className="flex items-center space-x-2 p-3 border-t border-base-300 bg-base-100 flex-shrink-0"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <input
           ref={inputRef}

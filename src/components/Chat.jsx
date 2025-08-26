@@ -58,7 +58,7 @@ const Chat = () => {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-7rem)] bg-base-100 relative">
+    <div className="flex h-[calc(100dvh-7rem)] min-h-0 bg-base-100 relative overflow-hidden">
       {/* Sidebar */}
       <div
         className={`${
@@ -75,7 +75,7 @@ const Chat = () => {
       <div
         className={`${
           isMobile ? (showUserList ? "hidden" : "w-full") : "flex-1"
-        } flex flex-col`}
+        } flex flex-col min-h-0`}
       >
         {activeConversationId ? (
           <ChatWindow

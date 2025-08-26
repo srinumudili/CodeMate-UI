@@ -33,6 +33,8 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // 🆕 Add state to track keyboard visibility
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   const conversation = conversations.find((c) => c._id === conversationId);
   const otherParticipant = conversation?.participants.find(
@@ -52,6 +54,72 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     if (!conversationId || !otherParticipant) return false;
     return !!typingByConversationId?.[conversationId]?.[otherParticipant._id];
   }, [typingByConversationId, conversationId, otherParticipant]);
+
+  // 🆕 Handle keyboard visibility detection
+  useEffect(() => {
+    if (!isMobile) return;
+
+    let initialViewportHeight =
+      window.visualViewport?.height || window.innerHeight;
+
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        const currentHeight = window.visualViewport.height;
+        const heightDifference = initialViewportHeight - currentHeight;
+
+        // Keyboard is considered visible if viewport shrunk by more than 150px
+        const keyboardVisible = heightDifference > 150;
+        setIsKeyboardVisible(keyboardVisible);
+      }
+    };
+
+    const handleResize = () => {
+      // Update initial height on orientation change
+      setTimeout(() => {
+        initialViewportHeight =
+          window.visualViewport?.height || window.innerHeight;
+      }, 500);
+    };
+
+    // Modern browsers with Visual Viewport API
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleViewportChange);
+    }
+
+    // Fallback for older browsers
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener(
+          "resize",
+          handleViewportChange
+        );
+      }
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [isMobile]);
+
+  // 🆕 Handle input focus/blur for additional keyboard detection
+  const handleInputFocus = () => {
+    if (isMobile) {
+      // Small delay to let keyboard animation start
+      setTimeout(() => {
+        setIsKeyboardVisible(true);
+        // Scroll to bottom when keyboard appears
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (isMobile) {
+      // Small delay to let keyboard hide
+      setTimeout(() => {
+        setIsKeyboardVisible(false);
+      }, 100);
+    }
+  };
 
   // 🆕 WhatsApp-like Last Seen Formatter
   const formatLastSeen = (lastSeenTimestamp) => {
@@ -380,18 +448,26 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   }
 
   return (
-    <div className="flex flex-col h-full  bg-base-100">
-      {/* Header */}
-      <div className="flex items-center p-4 border-b border-base-300 bg-base-100 sticky top-0 z-20">
+    <div
+      className={`flex flex-col h-full bg-base-100 ${
+        isMobile && isKeyboardVisible ? "keyboard-active" : ""
+      }`}
+    >
+      {/* 🔄 Header - Enhanced mobile safety */}
+      <div
+        className={`flex items-center p-4 border-b border-base-300 bg-base-100 ${
+          isMobile ? "sticky top-0 z-30" : "sticky top-0 z-20"
+        }`}
+      >
         {isMobile && (
           <button
             onClick={onBackToList}
-            className="btn btn-ghost btn-sm btn-circle mr-3"
+            className="btn btn-ghost btn-sm btn-circle mr-3 flex-shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
         )}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           <div className="avatar">
             <div className="w-10 rounded-full">
               <img
@@ -406,24 +482,33 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
           )}
         </div>
 
-        <div className="ml-3 flex-1">
-          <div className="font-semibold">
+        <div className="ml-3 flex-1 min-w-0">
+          <div className="font-semibold truncate">
             {otherParticipant.firstName} {otherParticipant.lastName}
           </div>
           {/* 🆕 Enhanced status display */}
           <div
-            className={`text-xs ${getStatusColor()} transition-colors duration-200`}
+            className={`text-xs ${getStatusColor()} transition-colors duration-200 truncate`}
           >
             {getUserStatusText()}
           </div>
         </div>
       </div>
 
-      {/* Messages */}
+      {/* 🔄 Messages - Enhanced mobile layout */}
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4 space-y-2 bg-base-100"
+        className={`flex-1 overflow-y-auto p-4 space-y-2 bg-base-100 ${
+          isMobile && isKeyboardVisible ? "pb-2" : ""
+        }`}
+        style={{
+          // 🆕 Ensure proper height calculation on mobile
+          height:
+            isMobile && isKeyboardVisible
+              ? "calc(100vh - 120px - env(keyboard-inset-height, 0px))"
+              : "auto",
+        }}
       >
         {loading && <div className="loading loading-spinner loading-md"></div>}
         {groupedMessages.map((group) => (
@@ -470,10 +555,22 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
+      {/* 🔄 Input - Enhanced mobile keyboard safety */}
       <form
         onSubmit={handleSendMessage}
-        className="p-4 border-t border-base-300 bg-base-100 sticky bottom-0 z-20 flex items-center space-x-2 pb-[env(safe-area-inset-bottom)]"
+        className={`p-4 border-t border-base-300 bg-base-100 ${
+          isMobile ? "sticky bottom-0 z-30" : "sticky bottom-0 z-20"
+        } flex items-center space-x-2 ${
+          isMobile ? "pb-[max(1rem,env(safe-area-inset-bottom))]" : "pb-4"
+        }`}
+        style={{
+          // 🆕 Prevent input from being hidden by keyboard
+          marginBottom: isMobile && isKeyboardVisible ? "0" : undefined,
+          transform:
+            isMobile && isKeyboardVisible
+              ? "translateY(-env(keyboard-inset-height, 0px))"
+              : undefined,
+        }}
       >
         <input
           ref={inputRef}
@@ -481,9 +578,15 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
           placeholder="Type a message..."
           value={messageText}
           onChange={(e) => handleTyping(e.target.value)}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
           className="input input-bordered input-sm flex-1"
+          style={{
+            // 🆕 Prevent zoom on iOS
+            fontSize: isMobile ? "16px" : undefined,
+          }}
         />
-        <button type="submit" className="btn btn-primary btn-sm">
+        <button type="submit" className="btn btn-primary btn-sm flex-shrink-0">
           Send
         </button>
       </form>

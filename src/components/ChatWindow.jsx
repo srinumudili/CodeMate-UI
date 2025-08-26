@@ -402,7 +402,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   }
 
   return (
-    <div className="h-full min-h-0 bg-base-100 flex flex-col">
+    <div className="h-[100dvh] min-h-0 bg-base-100 flex flex-col">
       {/* Header */}
       <div className="sticky top-0 flex items-center p-4 border-b border-base-300 bg-base-100 z-20">
         {isMobile && (

@@ -58,7 +58,7 @@ const Chat = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] min-h-0 bg-base-100 relative overflow-hidden">
+    <div className="flex h-[calc(100dvh-7rem)] min-h-0 bg-base-100 relative overflow-hidden">
       {/* Sidebar */}
       <div
         className={`${

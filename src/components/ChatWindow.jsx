@@ -85,43 +85,36 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         setKeyboardOpen(keyboardIsOpen);
         previousKeyboardState = keyboardIsOpen;
 
-        // Adjust container height when keyboard is open
+        // Force the container to use the visual viewport height
         if (chatContainerRef.current) {
+          const targetHeight = keyboardIsOpen ? currentHeight : initialHeight;
+          chatContainerRef.current.style.height = `${targetHeight}px`;
+
+          // Prevent any scrolling of the main document
           if (keyboardIsOpen) {
-            // Store current scroll position before keyboard opens
-            const messagesContainer = messagesContainerRef.current;
-            const currentScrollTop = messagesContainer?.scrollTop || 0;
-            const currentScrollHeight = messagesContainer?.scrollHeight || 0;
-
-            chatContainerRef.current.style.height = `${currentHeight}px`;
-
-            // Restore scroll position after a brief delay to maintain message visibility
-            setTimeout(() => {
-              if (messagesContainer) {
-                // Calculate if we were near the bottom
-                const wasNearBottom =
-                  currentScrollHeight -
-                    currentScrollTop -
-                    messagesContainer.clientHeight <
-                  100;
-
-                if (wasNearBottom) {
-                  // If we were near bottom, scroll to new bottom
-                  scrollToBottom(false);
-                } else {
-                  // Otherwise, try to maintain relative position
-                  const newScrollHeight = messagesContainer.scrollHeight;
-                  const scrollRatio =
-                    currentScrollTop / (currentScrollHeight || 1);
-                  messagesContainer.scrollTop = scrollRatio * newScrollHeight;
-                }
-              }
-            }, 100);
+            document.body.style.position = "fixed";
+            document.body.style.top = "0";
+            document.body.style.left = "0";
+            document.body.style.right = "0";
+            document.body.style.overflow = "hidden";
+            document.documentElement.style.overflow = "hidden";
           } else {
-            chatContainerRef.current.style.height = "100dvh";
-            // Scroll to bottom when keyboard closes
-            setTimeout(() => scrollToBottom(true), 100);
+            document.body.style.position = "";
+            document.body.style.top = "";
+            document.body.style.left = "";
+            document.body.style.right = "";
+            document.body.style.overflow = "";
+            document.documentElement.style.overflow = "";
           }
+
+          // Handle scroll position
+          setTimeout(() => {
+            if (keyboardIsOpen) {
+              scrollToBottom(false);
+            } else {
+              scrollToBottom(true);
+            }
+          }, 100);
         }
       }
     };
@@ -134,12 +127,26 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
           "resize",
           handleViewportChange
         );
+        // Clean up body styles on unmount
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.left = "";
+        document.body.style.right = "";
+        document.body.style.overflow = "";
+        document.documentElement.style.overflow = "";
       };
     } else {
       // Fallback for older browsers
       window.addEventListener("resize", handleViewportChange);
       return () => {
         window.removeEventListener("resize", handleViewportChange);
+        // Clean up body styles on unmount
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.left = "";
+        document.body.style.right = "";
+        document.body.style.overflow = "";
+        document.documentElement.style.overflow = "";
       };
     }
   }, [isMobile, scrollToBottom]);
@@ -492,24 +499,32 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   return (
     <div
       ref={chatContainerRef}
-      className={`bg-base-100 flex flex-col transition-all duration-300 ${
-        isMobile && keyboardOpen ? "fixed inset-0 z-50" : "h-[100dvh]"
-      } min-h-0`}
+      className="bg-base-100 flex flex-col min-h-0"
       style={{
-        // Ensure proper positioning when keyboard is open
-        ...(isMobile &&
-          keyboardOpen && {
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 50,
-          }),
+        height:
+          isMobile && keyboardOpen
+            ? `${window.visualViewport?.height || window.innerHeight}px`
+            : "100dvh",
+        position: isMobile && keyboardOpen ? "fixed" : "relative",
+        top: isMobile && keyboardOpen ? 0 : "auto",
+        left: isMobile && keyboardOpen ? 0 : "auto",
+        right: isMobile && keyboardOpen ? 0 : "auto",
+        zIndex: isMobile && keyboardOpen ? 50 : "auto",
+        overflow: "hidden",
       }}
     >
       {/* Header */}
-      <div className="sticky top-0 flex items-center p-4 border-b border-base-300 bg-base-100 z-20 flex-shrink-0">
+      <div
+        className="flex items-center p-4 border-b border-base-300 bg-base-100 z-20 flex-shrink-0"
+        style={{
+          position: isMobile && keyboardOpen ? "fixed" : "sticky",
+          top: 0,
+          left: 0,
+          right: 0,
+          width: "100%",
+          zIndex: 30,
+        }}
+      >
         {isMobile && (
           <button
             onClick={onBackToList}
@@ -548,6 +563,10 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         ref={messagesContainerRef}
         onScroll={handleScroll}
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 space-y-2 bg-base-100"
+        style={{
+          marginTop: isMobile && keyboardOpen ? "73px" : "0", // Account for fixed header height
+          paddingBottom: isMobile && keyboardOpen ? "80px" : "0", // Account for fixed input height
+        }}
       >
         {loading && <div className="loading loading-spinner loading-md"></div>}
         {groupedMessages.map((group) => (
@@ -595,11 +614,17 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       {/* Input */}
       <form
         onSubmit={handleSendMessage}
-        className="sticky bottom-0 flex items-center space-x-2 p-3 border-t border-base-300 bg-base-100 z-20 flex-shrink-0"
+        className="flex items-center space-x-2 p-3 border-t border-base-300 bg-base-100 z-20 flex-shrink-0"
         style={{
+          position: isMobile && keyboardOpen ? "fixed" : "sticky",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          width: "100%",
           paddingBottom: isMobile
             ? "max(12px, env(safe-area-inset-bottom))"
             : "12px",
+          zIndex: 30,
         }}
       >
         <input

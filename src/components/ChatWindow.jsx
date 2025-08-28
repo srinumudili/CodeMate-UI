@@ -61,20 +61,12 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     return !!typingByConversationId?.[conversationId]?.[otherParticipant._id];
   }, [typingByConversationId, conversationId, otherParticipant]);
 
-  // Handle scroll position when keyboard state changes
-  useEffect(() => {
-    if (!isMobile) return;
-
-    // When keyboard opens/closes, ensure proper positioning
-    const timeoutId = setTimeout(() => {
-      if (keyboardOpen) {
-        // When keyboard opens, scroll to bottom to show latest messages
-        scrollToBottom(false);
-      }
-    }, 100);
-
-    return () => clearTimeout(timeoutId);
-  }, [keyboardOpen, isMobile, scrollToBottom]);
+  // Scroll to bottom function
+  const scrollToBottom = useCallback((smooth = true) => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+  }, []);
 
   // Handle mobile keyboard visibility
   useEffect(() => {
@@ -151,6 +143,21 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       };
     }
   }, [isMobile, scrollToBottom]);
+
+  // Handle scroll position when keyboard state changes
+  useEffect(() => {
+    if (!isMobile) return;
+
+    // When keyboard opens/closes, ensure proper positioning
+    const timeoutId = setTimeout(() => {
+      if (keyboardOpen) {
+        // When keyboard opens, scroll to bottom to show latest messages
+        scrollToBottom(false);
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [keyboardOpen, isMobile, scrollToBottom]);
 
   // WhatsApp-like Last Seen Formatter
   const formatLastSeen = (lastSeenTimestamp) => {
@@ -275,13 +282,6 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       socket?.emit("typing", { conversationId, isTyping: false });
     }
   };
-
-  // Scroll to bottom (target the messages container, not the page)
-  const scrollToBottom = useCallback((smooth = true) => {
-    const el = messagesContainerRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
-  }, []);
 
   useEffect(() => {
     scrollToBottom(true);

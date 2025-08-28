@@ -39,14 +39,14 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [viewportHeight, setViewportHeight] = useState(window.innerHeight);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const conversation = conversations.find((c) => c._id === conversationId);
   const otherParticipant = conversation?.participants.find(
     (p) => p._id !== user._id
   );
 
-  // Ensure messages is always an array
+  // ✅ Ensure messages is always an array
   const messages = useMemo(() => messageData?.list || [], [messageData]);
   const loading = messageData?.loading || false;
 
@@ -60,46 +60,26 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     return !!typingByConversationId?.[conversationId]?.[otherParticipant._id];
   }, [typingByConversationId, conversationId, otherParticipant]);
 
-  // Scroll to bottom function
-  const scrollToBottom = useCallback((smooth = true) => {
-    const el = messagesContainerRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
-  }, []);
-
-  // Handle viewport changes for mobile keyboard
+  // 🆕 Visual Viewport API for keyboard detection
   useEffect(() => {
-    if (!isMobile) return;
+    if (!window.visualViewport) return;
 
     const handleViewportChange = () => {
-      // Use visual viewport if available, otherwise fall back to window.innerHeight
-      const newHeight = window.visualViewport?.height || window.innerHeight;
-      setViewportHeight(newHeight);
+      const windowHeight = window.innerHeight;
+      const viewportHeight = window.visualViewport.height;
+      const keyboardHeight = windowHeight - viewportHeight;
 
-      // Scroll to bottom after viewport change to keep messages visible
-      setTimeout(() => {
-        scrollToBottom(false);
-      }, 100);
+      setKeyboardHeight(Math.max(0, keyboardHeight));
     };
 
-    // Listen to both visual viewport and window resize
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", handleViewportChange);
-    }
-    window.addEventListener("resize", handleViewportChange);
+    window.visualViewport.addEventListener("resize", handleViewportChange);
 
     return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener(
-          "resize",
-          handleViewportChange
-        );
-      }
-      window.removeEventListener("resize", handleViewportChange);
+      window.visualViewport.removeEventListener("resize", handleViewportChange);
     };
-  }, [isMobile, scrollToBottom]);
+  }, []);
 
-  // WhatsApp-like Last Seen Formatter
+  // 🆕 WhatsApp-like Last Seen Formatter
   const formatLastSeen = (lastSeenTimestamp) => {
     if (!lastSeenTimestamp) return "last seen a long time ago";
 
@@ -109,40 +89,47 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     const diffInHours = now.diff(lastSeen, "hour");
     const diffInDays = now.diff(lastSeen, "day");
 
+    // Just now (less than 1 minute)
     if (diffInMinutes < 1) {
       return "last seen just now";
     }
 
+    // Minutes ago (1-59 minutes)
     if (diffInMinutes < 60) {
       return `last seen ${diffInMinutes} minute${
         diffInMinutes > 1 ? "s" : ""
       } ago`;
     }
 
+    // Hours ago (1-23 hours)
     if (diffInHours < 24) {
       return `last seen ${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`;
     }
 
+    // Today
     if (lastSeen.isToday()) {
       return `last seen today at ${lastSeen.format("h:mm A")}`;
     }
 
+    // Yesterday
     if (lastSeen.isYesterday()) {
       return `last seen yesterday at ${lastSeen.format("h:mm A")}`;
     }
 
+    // This week (within 7 days)
     if (diffInDays <= 7) {
       return `last seen ${lastSeen.format("dddd")} at ${lastSeen.format(
         "h:mm A"
       )}`;
     }
 
+    // More than a week ago
     return `last seen ${lastSeen.format("MM/DD/YYYY")} at ${lastSeen.format(
       "h:mm A"
     )}`;
   };
 
-  // Get user status text
+  // 🆕 Get user status text
   const getUserStatusText = () => {
     if (isOtherUserTyping) {
       return "typing...";
@@ -155,17 +142,17 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     return formatLastSeen(otherUserLastSeen);
   };
 
-  // Get status color based on online status
+  // 🆕 Get status color based on online status
   const getStatusColor = () => {
     if (isOtherUserTyping) {
-      return "text-blue-500";
+      return "text-blue-500"; // Blue for typing
     }
 
     if (isOtherUserOnline) {
-      return "text-green-500";
+      return "text-green-500"; // Green for online
     }
 
-    return "text-base-content/50";
+    return "text-base-content/50"; // Gray for offline/last seen
   };
 
   // Load messages when conversation changes
@@ -180,6 +167,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   useEffect(() => {
     if (!conversationId || !socket) return;
 
+    // ✅ Safe access to messages
     const unreadMessages = (messages || [])
       .filter((msg) => !msg.isRead && msg.receiver._id === user._id)
       .map((msg) => msg._id);
@@ -215,18 +203,35 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     }
   };
 
+  // Scroll to bottom (target the messages container, not the page)
+  const scrollToBottom = useCallback((smooth = true) => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+  }, []);
+
   useEffect(() => {
     scrollToBottom(true);
   }, [messages?.length, isOtherUserTyping, scrollToBottom]);
 
+  // when switching conversations, snap to bottom without page scroll
   useEffect(() => {
     scrollToBottom(false);
   }, [conversationId, scrollToBottom]);
+
+  // Scroll to bottom when keyboard opens/closes
+  useEffect(() => {
+    if (keyboardHeight > 0) {
+      // Keyboard opened - scroll to bottom after a short delay
+      setTimeout(() => scrollToBottom(true), 150);
+    }
+  }, [keyboardHeight, scrollToBottom]);
 
   // Handle scroll: pagination & markAsRead
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
 
+    // Mark messages as read if near bottom
     const unreadMessages = (messages || [])
       .filter((msg) => !msg.isRead && msg.receiver._id === user._id)
       .map((msg) => msg._id);
@@ -243,6 +248,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       dispatch(resetUnread({ conversationId }));
     }
 
+    // Pagination for older messages
     if (scrollTop === 0 && !isLoadingMore && messageData?.meta?.page > 1) {
       setIsLoadingMore(true);
       dispatch(
@@ -348,6 +354,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
             <div className="px-3 py-2 rounded-2xl bg-base-200 text-base-content/60 italic">
               This message was deleted
             </div>
+            {/* ✅ Time only (no ticks for deleted messages) */}
             <div className="flex justify-end mt-1 text-[10px] text-base-content/40">
               {formatMessageTime(message.createdAt)}
             </div>
@@ -379,6 +386,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
           >
             {message.text}
 
+            {/* ✅ Time + ticks inside bubble */}
             <div className="flex items-center justify-end mt-1 space-x-1 text-[10px] text-base-content/60">
               <span>{formatMessageTime(message.createdAt)}</span>
               {isOwnMessage &&
@@ -393,6 +401,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
             </div>
           </div>
 
+          {/* Delete button (own messages only) */}
           {isOwnMessage && (
             <button
               onClick={() => handleDeleteMessage(message._id)}
@@ -417,16 +426,16 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
 
   return (
     <div
-      className="bg-base-100 flex flex-col min-h-0"
+      className="relative bg-base-100 overflow-hidden"
       style={{
-        height: isMobile ? `${viewportHeight}px` : "100dvh",
+        height: "100vh",
+        maxHeight: "100vh",
       }}
     >
-      {/* Header - Fixed positioning when mobile */}
+      {/* Fixed Header */}
       <div
-        className={`flex items-center p-4 border-b border-base-300 bg-base-100 flex-shrink-0 ${
-          isMobile ? "fixed top-0 left-0 right-0 z-50" : "sticky top-0"
-        }`}
+        className="absolute top-0 left-0 right-0 z-30 flex items-center p-4 border-b border-base-300 bg-base-100"
+        style={{ height: "72px" }}
       >
         {isMobile && (
           <button
@@ -461,14 +470,15 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         </div>
       </div>
 
-      {/* Messages - Account for fixed header on mobile */}
+      {/* Messages Container - Adjusted for keyboard */}
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 space-y-2 bg-base-100"
+        className="absolute left-0 right-0 overflow-y-auto overscroll-contain px-4 space-y-2 bg-base-100"
         style={{
-          marginTop: isMobile ? "73px" : "0",
-          marginBottom: isMobile ? "80px" : "0",
+          top: "72px",
+          bottom: keyboardHeight > 0 ? `${72 + keyboardHeight}px` : "72px",
+          transition: "bottom 0.2s ease-out",
         }}
       >
         {loading && <div className="loading loading-spinner loading-md"></div>}
@@ -514,35 +524,33 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input - Fixed positioning when mobile */}
-      <form
-        onSubmit={handleSendMessage}
-        className={`flex items-center space-x-2 p-3 border-t border-base-300 bg-base-100 flex-shrink-0 ${
-          isMobile ? "fixed bottom-0 left-0 right-0 z-50" : "sticky bottom-0"
-        }`}
+      {/* Fixed Footer Input */}
+      <div
+        className="absolute bottom-0 left-0 right-0 z-30 bg-base-100 border-t border-base-300"
         style={{
-          paddingBottom: isMobile
-            ? "max(12px, env(safe-area-inset-bottom))"
-            : "12px",
+          height: "72px",
+          transform:
+            keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : "none",
+          transition: "transform 0.2s ease-out",
         }}
       >
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder="Type a message..."
-          value={messageText}
-          onChange={(e) => handleTyping(e.target.value)}
-          className="input input-bordered input-sm flex-1"
-          onFocus={() => {
-            if (isMobile) {
-              setTimeout(() => scrollToBottom(true), 300);
-            }
-          }}
-        />
-        <button type="submit" className="btn btn-primary btn-sm">
-          Send
-        </button>
-      </form>
+        <form
+          onSubmit={handleSendMessage}
+          className="flex items-center space-x-2 p-3 h-full"
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Type a message..."
+            value={messageText}
+            onChange={(e) => handleTyping(e.target.value)}
+            className="input input-bordered input-sm flex-1"
+          />
+          <button type="submit" className="btn btn-primary btn-sm">
+            Send
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

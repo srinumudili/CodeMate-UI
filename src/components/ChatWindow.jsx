@@ -25,6 +25,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   const { user } = useSelector((state) => state.user);
   const { list: conversations } = useSelector((state) => state.conversations);
@@ -46,7 +47,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     (p) => p._id !== user._id
   );
 
-  // ✅ Ensure messages is always an array
+  // Ensure messages is always an array
   const messages = useMemo(() => messageData?.list || [], [messageData]);
   const loading = messageData?.loading || false;
 
@@ -60,26 +61,55 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     return !!typingByConversationId?.[conversationId]?.[otherParticipant._id];
   }, [typingByConversationId, conversationId, otherParticipant]);
 
-  // 🆕 Visual Viewport API for keyboard detection
+  // Handle keyboard visibility for mobile
   useEffect(() => {
-    if (!window.visualViewport) return;
+    if (!isMobile) return;
 
-    const handleViewportChange = () => {
+    const handleResize = () => {
+      const viewportHeight =
+        window.visualViewport?.height || window.innerHeight;
       const windowHeight = window.innerHeight;
-      const viewportHeight = window.visualViewport.height;
       const keyboardHeight = windowHeight - viewportHeight;
 
       setKeyboardHeight(Math.max(0, keyboardHeight));
     };
 
-    window.visualViewport.addEventListener("resize", handleViewportChange);
+    const handleFocus = () => {
+      // Small delay to ensure keyboard is shown
+      setTimeout(handleResize, 150);
+    };
+
+    const handleBlur = () => {
+      setKeyboardHeight(0);
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+    } else {
+      window.addEventListener("resize", handleResize);
+    }
+
+    const inputElement = inputRef.current;
+    if (inputElement) {
+      inputElement.addEventListener("focus", handleFocus);
+      inputElement.addEventListener("blur", handleBlur);
+    }
 
     return () => {
-      window.visualViewport.removeEventListener("resize", handleViewportChange);
-    };
-  }, []);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+      } else {
+        window.removeEventListener("resize", handleResize);
+      }
 
-  // 🆕 WhatsApp-like Last Seen Formatter
+      if (inputElement) {
+        inputElement.removeEventListener("focus", handleFocus);
+        inputElement.removeEventListener("blur", handleBlur);
+      }
+    };
+  }, [isMobile]);
+
+  // WhatsApp-like Last Seen Formatter
   const formatLastSeen = (lastSeenTimestamp) => {
     if (!lastSeenTimestamp) return "last seen a long time ago";
 
@@ -129,7 +159,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     )}`;
   };
 
-  // 🆕 Get user status text
+  // Get user status text
   const getUserStatusText = () => {
     if (isOtherUserTyping) {
       return "typing...";
@@ -142,7 +172,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     return formatLastSeen(otherUserLastSeen);
   };
 
-  // 🆕 Get status color based on online status
+  // Get status color based on online status
   const getStatusColor = () => {
     if (isOtherUserTyping) {
       return "text-blue-500"; // Blue for typing
@@ -167,7 +197,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   useEffect(() => {
     if (!conversationId || !socket) return;
 
-    // ✅ Safe access to messages
+    // Safe access to messages
     const unreadMessages = (messages || [])
       .filter((msg) => !msg.isRead && msg.receiver._id === user._id)
       .map((msg) => msg._id);
@@ -218,14 +248,6 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   useEffect(() => {
     scrollToBottom(false);
   }, [conversationId, scrollToBottom]);
-
-  // Scroll to bottom when keyboard opens/closes
-  useEffect(() => {
-    if (keyboardHeight > 0) {
-      // Keyboard opened - scroll to bottom after a short delay
-      setTimeout(() => scrollToBottom(true), 150);
-    }
-  }, [keyboardHeight, scrollToBottom]);
 
   // Handle scroll: pagination & markAsRead
   const handleScroll = (e) => {
@@ -354,7 +376,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
             <div className="px-3 py-2 rounded-2xl bg-base-200 text-base-content/60 italic">
               This message was deleted
             </div>
-            {/* ✅ Time only (no ticks for deleted messages) */}
+            {/* Time only (no ticks for deleted messages) */}
             <div className="flex justify-end mt-1 text-[10px] text-base-content/40">
               {formatMessageTime(message.createdAt)}
             </div>
@@ -386,7 +408,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
           >
             {message.text}
 
-            {/* ✅ Time + ticks inside bubble */}
+            {/* Time + ticks inside bubble */}
             <div className="flex items-center justify-end mt-1 space-x-1 text-[10px] text-base-content/60">
               <span>{formatMessageTime(message.createdAt)}</span>
               {isOwnMessage &&
@@ -426,17 +448,15 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
 
   return (
     <div
-      className="relative bg-base-100 overflow-hidden"
+      ref={chatContainerRef}
+      className="flex flex-col bg-base-100"
       style={{
-        height: "100vh",
-        maxHeight: "100vh",
+        height: isMobile ? `calc(100vh - ${keyboardHeight}px)` : "100%",
+        minHeight: 0,
       }}
     >
-      {/* Fixed Header */}
-      <div
-        className="absolute top-0 left-0 right-0 z-30 flex items-center p-4 border-b border-base-300 bg-base-100"
-        style={{ height: "72px" }}
-      >
+      {/* Header - Fixed position */}
+      <div className="flex items-center p-4 border-b border-base-300 bg-base-100 z-20 flex-shrink-0">
         {isMobile && (
           <button
             onClick={onBackToList}
@@ -470,15 +490,13 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         </div>
       </div>
 
-      {/* Messages Container - Adjusted for keyboard */}
+      {/* Messages (scrollable) */}
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="absolute left-0 right-0 overflow-y-auto overscroll-contain px-4 space-y-2 bg-base-100"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 space-y-2 bg-base-100"
         style={{
-          top: "72px",
-          bottom: keyboardHeight > 0 ? `${72 + keyboardHeight}px` : "72px",
-          transition: "bottom 0.2s ease-out",
+          paddingBottom: isMobile ? "env(safe-area-inset-bottom, 0px)" : "0px",
         }}
       >
         {loading && <div className="loading loading-spinner loading-md"></div>}
@@ -524,33 +542,28 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Fixed Footer Input */}
-      <div
-        className="absolute bottom-0 left-0 right-0 z-30 bg-base-100 border-t border-base-300"
+      {/* Input - Fixed at bottom */}
+      <form
+        onSubmit={handleSendMessage}
+        className="flex items-center space-x-2 p-3 border-t border-base-300 bg-base-100 z-20 flex-shrink-0"
         style={{
-          height: "72px",
-          transform:
-            keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : "none",
-          transition: "transform 0.2s ease-out",
+          paddingBottom: isMobile
+            ? "max(0.75rem, env(safe-area-inset-bottom))"
+            : "0.75rem",
         }}
       >
-        <form
-          onSubmit={handleSendMessage}
-          className="flex items-center space-x-2 p-3 h-full"
-        >
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Type a message..."
-            value={messageText}
-            onChange={(e) => handleTyping(e.target.value)}
-            className="input input-bordered input-sm flex-1"
-          />
-          <button type="submit" className="btn btn-primary btn-sm">
-            Send
-          </button>
-        </form>
-      </div>
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="Type a message..."
+          value={messageText}
+          onChange={(e) => handleTyping(e.target.value)}
+          className="input input-bordered input-sm flex-1"
+        />
+        <button type="submit" className="btn btn-primary btn-sm">
+          Send
+        </button>
+      </form>
     </div>
   );
 };

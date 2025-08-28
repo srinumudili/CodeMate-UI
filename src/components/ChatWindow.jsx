@@ -61,25 +61,75 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     return !!typingByConversationId?.[conversationId]?.[otherParticipant._id];
   }, [typingByConversationId, conversationId, otherParticipant]);
 
+  // Handle scroll position when keyboard state changes
+  useEffect(() => {
+    if (!isMobile) return;
+
+    // When keyboard opens/closes, ensure proper positioning
+    const timeoutId = setTimeout(() => {
+      if (keyboardOpen) {
+        // When keyboard opens, scroll to bottom to show latest messages
+        scrollToBottom(false);
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [keyboardOpen, isMobile, scrollToBottom]);
+
   // Handle mobile keyboard visibility
   useEffect(() => {
     if (!isMobile) return;
 
     let initialHeight = window.visualViewport?.height || window.innerHeight;
+    let previousKeyboardState = false;
 
     const handleViewportChange = () => {
       const currentHeight = window.visualViewport?.height || window.innerHeight;
       const heightDifference = initialHeight - currentHeight;
       const keyboardIsOpen = heightDifference > 150; // Threshold for keyboard detection
 
-      setKeyboardOpen(keyboardIsOpen);
+      // Only update if keyboard state actually changed
+      if (keyboardIsOpen !== previousKeyboardState) {
+        setKeyboardOpen(keyboardIsOpen);
+        previousKeyboardState = keyboardIsOpen;
 
-      // Adjust container height when keyboard is open
-      if (chatContainerRef.current) {
-        if (keyboardIsOpen) {
-          chatContainerRef.current.style.height = `${currentHeight}px`;
-        } else {
-          chatContainerRef.current.style.height = "100dvh";
+        // Adjust container height when keyboard is open
+        if (chatContainerRef.current) {
+          if (keyboardIsOpen) {
+            // Store current scroll position before keyboard opens
+            const messagesContainer = messagesContainerRef.current;
+            const currentScrollTop = messagesContainer?.scrollTop || 0;
+            const currentScrollHeight = messagesContainer?.scrollHeight || 0;
+
+            chatContainerRef.current.style.height = `${currentHeight}px`;
+
+            // Restore scroll position after a brief delay to maintain message visibility
+            setTimeout(() => {
+              if (messagesContainer) {
+                // Calculate if we were near the bottom
+                const wasNearBottom =
+                  currentScrollHeight -
+                    currentScrollTop -
+                    messagesContainer.clientHeight <
+                  100;
+
+                if (wasNearBottom) {
+                  // If we were near bottom, scroll to new bottom
+                  scrollToBottom(false);
+                } else {
+                  // Otherwise, try to maintain relative position
+                  const newScrollHeight = messagesContainer.scrollHeight;
+                  const scrollRatio =
+                    currentScrollTop / (currentScrollHeight || 1);
+                  messagesContainer.scrollTop = scrollRatio * newScrollHeight;
+                }
+              }
+            }, 100);
+          } else {
+            chatContainerRef.current.style.height = "100dvh";
+            // Scroll to bottom when keyboard closes
+            setTimeout(() => scrollToBottom(true), 100);
+          }
         }
       }
     };
@@ -100,7 +150,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         window.removeEventListener("resize", handleViewportChange);
       };
     }
-  }, [isMobile]);
+  }, [isMobile, scrollToBottom]);
 
   // WhatsApp-like Last Seen Formatter
   const formatLastSeen = (lastSeenTimestamp) => {
@@ -560,9 +610,12 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
           onChange={(e) => handleTyping(e.target.value)}
           className="input input-bordered input-sm flex-1"
           onFocus={() => {
-            // Small delay to ensure keyboard is fully open before scrolling
+            // Ensure we're at bottom when input is focused
             if (isMobile) {
-              setTimeout(() => scrollToBottom(true), 300);
+              // Immediate scroll to bottom, then delayed scroll after keyboard animation
+              scrollToBottom(false);
+              setTimeout(() => scrollToBottom(true), 150);
+              setTimeout(() => scrollToBottom(false), 300);
             }
           }}
         />

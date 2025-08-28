@@ -25,7 +25,6 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const inputRef = useRef(null);
-  const chatContainerRef = useRef(null);
 
   const { user } = useSelector((state) => state.user);
   const { list: conversations } = useSelector((state) => state.conversations);
@@ -398,17 +397,8 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   }
 
   return (
-    <div
-      ref={chatContainerRef}
-      className="flex flex-col bg-base-100"
-      style={{
-        height: isMobile
-          ? `${window.visualViewport?.height || "100vh"}`
-          : "100%",
-        minHeight: 0,
-      }}
-    >
-      {/* Header - Fixed position */}
+    <div className="flex flex-col h-full bg-base-100">
+      {/* Fixed Header */}
       <div className="flex items-center p-4 border-b border-base-300 bg-base-100 z-20 flex-shrink-0">
         {isMobile && (
           <button
@@ -443,13 +433,13 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         </div>
       </div>
 
-      {/* Messages (scrollable) */}
+      {/* Scrollable Messages - This will expand/contract with keyboard */}
       <div
         ref={messagesContainerRef}
         onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 space-y-2 bg-base-100"
+        className="flex-1 overflow-y-auto overscroll-contain px-4 space-y-2 bg-base-100"
         style={{
-          paddingBottom: isMobile ? "env(safe-area-inset-bottom, 0px)" : "0px",
+          minHeight: 0, // Important for proper flex behavior
         }}
       >
         {loading && <div className="loading loading-spinner loading-md"></div>}
@@ -495,14 +485,12 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input - Fixed at bottom */}
+      {/* Fixed Input - Will stay at bottom even with keyboard */}
       <form
         onSubmit={handleSendMessage}
         className="flex items-center space-x-2 p-3 border-t border-base-300 bg-base-100 z-20 flex-shrink-0"
         style={{
-          paddingBottom: isMobile
-            ? "max(0.75rem, env(safe-area-inset-bottom))"
-            : "0.75rem",
+          paddingBottom: isMobile ? "env(safe-area-inset-bottom)" : "12px",
         }}
       >
         <input

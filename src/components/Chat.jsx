@@ -13,25 +13,60 @@ const Chat = () => {
   const { activeConversationId } = useSelector((state) => state.chatUI);
   const [isMobile, setIsMobile] = useState(false);
   const [showUserList, setShowUserList] = useState(true);
+  const [viewportHeight, setViewportHeight] = useState("100vh");
 
-  // 🔹 Handle responsive layout
+  // Handle responsive layout and viewport height
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
+
       if (mobile && activeConversationId) {
         setShowUserList(false);
       } else if (!mobile) {
         setShowUserList(true);
       }
+
+      // Calculate available height (viewport minus header/footer)
+      if (mobile) {
+        // Use Visual Viewport API if available, otherwise fallback
+        if (window.visualViewport) {
+          const height = window.visualViewport.height;
+          setViewportHeight(`${height - 112}px`); // 112px = header + footer approx
+        } else {
+          setViewportHeight("calc(100vh - 7rem)");
+        }
+      } else {
+        setViewportHeight("calc(100vh - 7rem)");
+      }
+    };
+
+    const handleViewportChange = () => {
+      if (window.visualViewport && isMobile) {
+        const height = window.visualViewport.height;
+        setViewportHeight(`${height - 112}px`);
+      }
     };
 
     handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [activeConversationId]);
 
-  // 🔹 Only emit joinChat here
+    // Listen for viewport changes (keyboard open/close)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleViewportChange);
+    }
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener(
+          "resize",
+          handleViewportChange
+        );
+      }
+    };
+  }, [activeConversationId, isMobile]);
+
   const handleConversationSelect = (conversationId) => {
     dispatch(setActiveConversation(conversationId));
     if (socket) {
@@ -58,7 +93,10 @@ const Chat = () => {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-7rem)] min-h-0 bg-base-100 relative overflow-hidden">
+    <div
+      className="flex bg-base-100 relative overflow-hidden"
+      style={{ height: viewportHeight }}
+    >
       {/* Sidebar */}
       <div
         className={`${

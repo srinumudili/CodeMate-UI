@@ -40,7 +40,6 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const conversation = conversations.find((c) => c._id === conversationId);
   const otherParticipant = conversation?.participants.find(
@@ -60,54 +59,6 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     if (!conversationId || !otherParticipant) return false;
     return !!typingByConversationId?.[conversationId]?.[otherParticipant._id];
   }, [typingByConversationId, conversationId, otherParticipant]);
-
-  // Handle keyboard visibility for mobile
-  useEffect(() => {
-    if (!isMobile) return;
-
-    const handleResize = () => {
-      const viewportHeight =
-        window.visualViewport?.height || window.innerHeight;
-      const windowHeight = window.innerHeight;
-      const keyboardHeight = windowHeight - viewportHeight;
-
-      setKeyboardHeight(Math.max(0, keyboardHeight));
-    };
-
-    const handleFocus = () => {
-      // Small delay to ensure keyboard is shown
-      setTimeout(handleResize, 150);
-    };
-
-    const handleBlur = () => {
-      setKeyboardHeight(0);
-    };
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", handleResize);
-    } else {
-      window.addEventListener("resize", handleResize);
-    }
-
-    const inputElement = inputRef.current;
-    if (inputElement) {
-      inputElement.addEventListener("focus", handleFocus);
-      inputElement.addEventListener("blur", handleBlur);
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", handleResize);
-      } else {
-        window.removeEventListener("resize", handleResize);
-      }
-
-      if (inputElement) {
-        inputElement.removeEventListener("focus", handleFocus);
-        inputElement.removeEventListener("blur", handleBlur);
-      }
-    };
-  }, [isMobile]);
 
   // WhatsApp-like Last Seen Formatter
   const formatLastSeen = (lastSeenTimestamp) => {
@@ -451,7 +402,9 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       ref={chatContainerRef}
       className="flex flex-col bg-base-100"
       style={{
-        height: isMobile ? `calc(100vh - ${keyboardHeight}px)` : "100%",
+        height: isMobile
+          ? `${window.visualViewport?.height || "100vh"}`
+          : "100%",
         minHeight: 0,
       }}
     >

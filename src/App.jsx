@@ -18,31 +18,21 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const publicPaths = ["/login", "/signup"];
-      const isPublic = publicPaths.includes(location.pathname);
+    const publicPaths = ["/login", "/signup"];
+    const isPublic = publicPaths.some((path) =>
+      location.pathname.startsWith(path)
+    );
 
-      // Skip fetching user profile for public paths
-      if (isPublic) {
-        dispatch(clearError());
-        setLoading(false);
-        return;
-      }
+    if (isPublic) {
+      dispatch(clearError());
+      setLoading(false);
+      return;
+    }
 
-      // Fetch user profile for protected paths
-      try {
-        await dispatch(fetchUserProfile()).unwrap();
-        setLoading(false);
-
-        const socket = getSocket();
-        socket.on("connect", async () => {
-          try {
-            await dispatch(fetchConversations({ page: 1, limit: 20 })).unwrap();
-          } catch (convError) {
-            console.warn("Failed to fetch conversations:", convError);
-          }
-        });
-      } catch (error) {
+    dispatch(fetchUserProfile())
+      .unwrap()
+      .then(() => setLoading(false))
+      .catch((error) => {
         setLoading(false);
         if (error?.status === 401) {
           navigate("/login", { replace: true });
@@ -54,13 +44,24 @@ function App() {
             },
           });
         }
-      }
-    };
-
-    fetchUser();
+      });
   }, [dispatch, navigate, location.pathname]);
 
-  // Show loading spinner while checking auth or fetching user
+  useEffect(() => {
+    if (!userData?._id) return;
+
+    const socket = getSocket();
+    socket.on("connect", () => {
+      dispatch(fetchConversations({ page: 1, limit: 20 })).catch((err) =>
+        console.warn("Failed to fetch conversations:", err)
+      );
+    });
+
+    return () => {
+      socket.off("connect");
+    };
+  }, [dispatch, userData]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-200">

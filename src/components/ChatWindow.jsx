@@ -304,9 +304,23 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
     return groups;
   }, [uniqueMessages]);
 
-  const MessageBubble = ({ message, showAvatar = false }) => {
+  const MessageBubble = ({ message, showAvatar = false, isMobile }) => {
+    const [showDelete, setShowDelete] = useState(false);
     const isOwnMessage = message.sender._id === user._id;
     const isDeleted = message.deletedFor?.includes(user._id);
+
+    // Timer for long-press
+    const longPressTimer = useRef(null);
+
+    const handleTouchStart = () => {
+      longPressTimer.current = setTimeout(() => {
+        setShowDelete(true); // reveal delete on long press
+      }, 600); // 600ms long press threshold
+    };
+
+    const handleTouchEnd = () => {
+      clearTimeout(longPressTimer.current);
+    };
 
     if (isDeleted) {
       return (
@@ -340,12 +354,14 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         className={`flex ${
           isOwnMessage ? "justify-end" : "justify-start"
         } mb-2 group`}
+        onTouchStart={isMobile ? handleTouchStart : undefined}
+        onTouchEnd={isMobile ? handleTouchEnd : undefined}
       >
         {showAvatar && !isOwnMessage && (
           <img
             src={message.sender.profileUrl}
             alt={message.sender.firstName}
-            className="w-6 h-6 rounded-full mr-2 self-end"
+            className="w-8 h-8 rounded-full mr-2 self-end"
           />
         )}
         <div className="max-w-xs lg:max-w-md relative">
@@ -377,7 +393,13 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
           {isOwnMessage && (
             <button
               onClick={() => handleDeleteMessage(message._id)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity btn btn-ghost btn-xs absolute -left-6 top-1/2 -translate-y-1/2"
+              className={`${
+                isMobile
+                  ? showDelete
+                    ? "opacity-100"
+                    : "opacity-0"
+                  : "opacity-0 group-hover:opacity-100"
+              } transition-opacity btn btn-ghost btn-xs absolute -left-6 top-1/2 -translate-y-1/2`}
               title="Delete message"
             >
               <Trash2 className="w-3 h-3" />

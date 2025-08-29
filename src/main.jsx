@@ -1,19 +1,36 @@
-import { StrictMode } from "react";
+import { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.jsx";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import ErrorPage from "./components/ErrorPage.jsx";
-import MainContainer from "./components/MainContainer.jsx";
-import Login from "./components/Login.jsx";
-import Profile from "./components/Profile.jsx";
 import { Provider } from "react-redux";
 import appStore from "./utils/redux/appStore.js";
-import Connections from "./components/Connections.jsx";
-import Requests from "./components/Requests.jsx";
-import SignUp from "./components/SignUp.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import Chat from "./components/Chat.jsx";
+
+// Entry points - eager load
+import MainContainer from "./components/MainContainer.jsx";
+import Login from "./components/Login.jsx";
+
+//Lazy-loaded Routes
+const Profile = lazy(() => import("./components/Profile.jsx"));
+const Connections = lazy(() => import("./components/Connections.jsx"));
+const Requests = lazy(() => import("./components/Requests.jsx"));
+const SignUp = lazy(() => import("./components/SignUp.jsx"));
+const Chat = lazy(() => import("./components/Chat.jsx"));
+
+// Suspense wrapper (for fallback loading state)
+const withSuspense = (element) => (
+  <Suspense
+    fallback={
+      <div className="min-h-screen flex items-center justify-center bg-base-200">
+        <span className="loading loading-spinner text-primary w-10 h-10"></span>
+      </div>
+    }
+  >
+    {element}
+  </Suspense>
+);
 
 const router = createBrowserRouter([
   {
@@ -34,7 +51,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/profile",
-        element: (
+        element: withSuspense(
           <ProtectedRoute>
             <Profile />
           </ProtectedRoute>
@@ -42,7 +59,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/connections",
-        element: (
+        element: withSuspense(
           <ProtectedRoute>
             <Connections />
           </ProtectedRoute>
@@ -50,7 +67,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/requests",
-        element: (
+        element: withSuspense(
           <ProtectedRoute>
             <Requests />
           </ProtectedRoute>
@@ -58,11 +75,11 @@ const router = createBrowserRouter([
       },
       {
         path: "/signup",
-        element: <SignUp />,
+        element: withSuspense(<SignUp />),
       },
       {
         path: "/messages",
-        element: <Chat />,
+        element: withSuspense(<Chat />),
       },
     ],
     errorElement: <ErrorPage />,

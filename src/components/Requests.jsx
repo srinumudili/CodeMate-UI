@@ -40,11 +40,10 @@ const Request = () => {
 
   if (!requests || requests.length === 0) {
     return (
-      <div className="flex flex-col justify-center items-center h-[60vh]">
-        <h1 className="text-2xl font-bold text-gray-500">
-          Connection Requests
+      <div className="flex justify-center items-center h-[60vh]">
+        <h1 className="text-xl text-gray-400 font-semibold">
+          No connection requests found.
         </h1>
-        <p className="mt-2 text-lg text-gray-400">No connection requests.</p>
       </div>
     );
   }

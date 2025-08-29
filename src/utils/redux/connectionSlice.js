@@ -27,6 +27,7 @@ const connectionSlice = createSlice({
     meta: { page: 1, limit: 20, total: 0 },
     loading: false,
     error: null,
+    hasInitiallyFetched: false,
   },
   reducers: {
     addConnection: (state, action) => {
@@ -52,10 +53,12 @@ const connectionSlice = createSlice({
         state.loading = false;
         state.list = action.payload.connections;
         state.meta = action.payload.meta;
+        state.hasInitiallyFetched = true;
       })
       .addCase(fetchConnections.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+        state.hasInitiallyFetched = true;
       });
   },
 });

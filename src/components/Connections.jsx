@@ -5,9 +5,11 @@ import ConnectionsShimmer from "./ConnectionsShimmer";
 
 const Connections = () => {
   const dispatch = useDispatch();
-  const { list: connections, loading } = useSelector(
-    (state) => state.connections
-  );
+  const {
+    list: connections,
+    loading,
+    hasInitiallyFetched,
+  } = useSelector((state) => state.connections);
 
   useEffect(() => {
     if (!connections || connections.length === 0) {
@@ -71,7 +73,7 @@ const Connections = () => {
     [connections]
   );
 
-  if (loading) {
+  if (loading && !hasInitiallyFetched) {
     return (
       <div className="min-h-screen bg-base-200 py-10 px-4 sm:px-6 lg:px-8">
         <h1 className="text-center text-3xl sm:text-4xl font-bold text-base-content mb-10">
@@ -88,9 +90,9 @@ const Connections = () => {
 
   if (!connections || connections.length === 0) {
     return (
-      <div className="min-h-screen bg-base-200 flex items-center justify-center">
-        <h1 className="text-2xl font-semibold text-neutral-content">
-          No Connections Found
+      <div className="flex justify-center items-center h-[60vh]">
+        <h1 className="text-xl text-gray-400 font-semibold">
+          No Connections Found.
         </h1>
       </div>
     );

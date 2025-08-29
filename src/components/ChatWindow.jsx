@@ -336,7 +336,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
               className="w-6 h-6 rounded-full mr-2 self-end"
             />
           )}
-          <div className="max-w-xs lg:max-w-md relative">
+          <div className="relative max-w-[80%]">
             <div className="px-3 py-2 rounded-2xl bg-base-200 text-base-content/60 italic">
               This message was deleted
             </div>
@@ -354,8 +354,8 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
         className={`flex ${
           isOwnMessage ? "justify-end" : "justify-start"
         } mb-2 group`}
-        onTouchStart={isMobile ? handleTouchStart : undefined}
-        onTouchEnd={isMobile ? handleTouchEnd : undefined}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {showAvatar && !isOwnMessage && (
           <img
@@ -364,7 +364,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
             className="w-8 h-8 rounded-full mr-2 self-end"
           />
         )}
-        <div className="max-w-xs lg:max-w-md relative">
+        <div className="relative max-w-[80%]">
           <div
             className={`px-3 py-2 rounded-2xl break-words ${
               isOwnMessage
@@ -392,17 +392,20 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
           {/* Delete button (own messages only) */}
           {isOwnMessage && (
             <button
-              onClick={() => handleDeleteMessage(message._id)}
-              className={`${
+              onClick={() => {
+                handleDeleteMessage(message._id);
+                setShowDelete(false); // hide after delete
+              }}
+              className={`absolute top-1/2 -translate-y-1/2 left-[-18px] z-20 p-1 rounded-full bg-base-100 hover:bg-base-200 shadow-md transition-opacity ${
                 isMobile
                   ? showDelete
                     ? "opacity-100"
                     : "opacity-0"
                   : "opacity-0 group-hover:opacity-100"
-              } transition-opacity btn btn-ghost btn-xs absolute -left-6 top-1/2 -translate-y-1/2`}
+              }`}
               title="Delete message"
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2 className="w-4 h-4 text-red-500" />
             </button>
           )}
         </div>
@@ -485,6 +488,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
                   key={`${msg._id}-${msg.createdAt}`}
                   message={msg}
                   showAvatar={showAvatar}
+                  isMobile={isMobile}
                 />
               );
             })}

@@ -3,10 +3,6 @@ import React from "react";
 const RequestShimmer = ({ requestCount }) => {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 min-h-screen">
-      <h1 className="text-3xl font-bold text-center text-white mb-8">
-        Connection Requests
-      </h1>
-
       <div className="space-y-4 animate-pulse">
         {[...Array(requestCount)].map((_, index) => (
           <div

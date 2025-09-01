@@ -72,6 +72,7 @@ const Navbar = () => {
             }`
           }
           data-tip="Messages"
+          onClick={(e) => e.currentTarget.blur()}
         >
           <HiOutlineChat className="w-6 h-6" />
           {totalUnread > 0 && (

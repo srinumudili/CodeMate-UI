@@ -66,14 +66,20 @@ const UserCard = ({ user, isFeedCard }) => {
               <button
                 className="btn btn-outline btn-error btn-circle tooltip transition-transform hover:scale-110"
                 data-tip="Ignore"
-                onClick={() => handleSendRequest("ignored", _id)}
+                onClick={(e) => {
+                  handleSendRequest("ignored", _id);
+                  e.currentTarget.blur();
+                }}
               >
                 <X className="w-5 h-5" />
               </button>
               <button
                 className="btn btn-primary btn-circle tooltip transition-transform hover:scale-110"
                 data-tip="Send Interest"
-                onClick={() => handleSendRequest("interested", _id)}
+                onClick={(e) => {
+                  handleSendRequest("interested", _id);
+                  e.currentTarget.blur();
+                }}
               >
                 <Heart className="w-5 h-5" />
               </button>

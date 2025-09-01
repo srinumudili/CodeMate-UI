@@ -12,9 +12,7 @@ const Connections = () => {
   } = useSelector((state) => state.connections);
 
   useEffect(() => {
-    if (!connections || connections.length === 0) {
-      dispatch(fetchConnections({ page: 1, limit: 20 }));
-    }
+    dispatch(fetchConnections({ page: 1, limit: 20 }));
   }, [dispatch, connections]);
 
   const getInitials = (firstName, lastName) =>

@@ -70,20 +70,22 @@ const SocketProvider = ({ children }) => {
         );
       }
 
-      // Use current activeConversationId from the callback parameter
-      dispatch((_, getState) => {
-        const currentActiveId = getState().chatUI.activeConversationId;
-        const currentUserId = getState().user.user?._id;
+      // Increment unread only for existing conversations (avoids double-counting for new ones)
+      if (conversationExists) {
+        dispatch((_, getState) => {
+          const currentActiveId = getState().chatUI.activeConversationId;
+          const currentUserId = getState().user.user?._id;
 
-        if (
-          currentActiveId !== messageData.conversationId &&
-          messageData.receiver._id === currentUserId
-        ) {
-          dispatch(
-            incrementUnread({ conversationId: messageData.conversationId })
-          );
-        }
-      });
+          if (
+            currentActiveId !== messageData.conversationId &&
+            messageData.receiver._id === currentUserId
+          ) {
+            dispatch(
+              incrementUnread({ conversationId: messageData.conversationId })
+            );
+          }
+        });
+      }
     },
     [dispatch, conversations, user._id] // Add dependencies
   );

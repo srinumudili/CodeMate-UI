@@ -36,7 +36,13 @@ const messageSlice = createSlice({
           error: null,
         };
       }
-      state.byConversation[conversationId].list.push(message);
+      // Only add if message doesn't already exist
+      const exists = state.byConversation[conversationId].list.some(
+        (msg) => msg._id === message._id
+      );
+      if (!exists) {
+        state.byConversation[conversationId].list.push(message);
+      }
     },
     markAsRead: (state, action) => {
       const { conversationId, messageIds } = action.payload;

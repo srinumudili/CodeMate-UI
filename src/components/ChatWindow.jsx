@@ -65,26 +65,7 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
 
     const lastSeen = dayjs(lastSeenTimestamp);
     const now = dayjs();
-    const diffInMinutes = now.diff(lastSeen, "minute");
-    const diffInHours = now.diff(lastSeen, "hour");
     const diffInDays = now.diff(lastSeen, "day");
-
-    // Just now (less than 1 minute)
-    if (diffInMinutes < 1) {
-      return "last seen just now";
-    }
-
-    // Minutes ago (1-59 minutes)
-    if (diffInMinutes < 60) {
-      return `last seen ${diffInMinutes} minute${
-        diffInMinutes > 1 ? "s" : ""
-      } ago`;
-    }
-
-    // Hours ago (1-23 hours)
-    if (diffInHours < 24) {
-      return `last seen ${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`;
-    }
 
     // Today
     if (lastSeen.isToday()) {
@@ -96,14 +77,14 @@ const ChatWindow = ({ conversationId, onBackToList, isMobile }) => {
       return `last seen yesterday at ${lastSeen.format("h:mm A")}`;
     }
 
-    // This week (within 7 days)
-    if (diffInDays <= 7) {
+    // Within this week (less than 7 days ago)
+    if (diffInDays < 7) {
       return `last seen ${lastSeen.format("dddd")} at ${lastSeen.format(
         "h:mm A"
       )}`;
     }
 
-    // More than a week ago
+    // Older
     return `last seen ${lastSeen.format("MM/DD/YYYY")} at ${lastSeen.format(
       "h:mm A"
     )}`;
